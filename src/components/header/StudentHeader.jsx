@@ -9,6 +9,9 @@ const StudentHeader = () => {
   const handleLogout = () => {
     logoutUser(navigate);
   };
+  const handleNavigateProfile = () => {
+    navigate("/student/profile");
+  };
 
   return (
     <header className="flex justify-between items-center p-4 bg-white">
@@ -17,12 +20,12 @@ const StudentHeader = () => {
         <a href="/student/courses" className="text-gray-600 hover:text-black">
           My Courses
         </a>
-        <a
-          href="/student/assignments"
+        <button
+          onClick={handleNavigateProfile}
           className="text-gray-600 hover:text-black"
         >
-          Assignments
-        </a>
+          Profile
+        </button>
         <button
           onClick={handleLogout}
           className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-700"

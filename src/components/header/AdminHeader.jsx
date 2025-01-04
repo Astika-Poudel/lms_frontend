@@ -14,6 +14,10 @@ const AdminHeader = () => {
     navigate("/admin/create-courses");
   };
 
+  const handleNavigateProfile = () => {
+    navigate("/admin/profile");
+  };
+
   return (
     <header className="flex justify-between items-center p-4 bg-white">
       <h1
@@ -29,9 +33,12 @@ const AdminHeader = () => {
         >
           Create Courses
         </button>
-        <a href="/admin/profile" className="text-gray-600 hover:text-black">
+        <button
+          onClick={handleNavigateProfile}
+          className="text-gray-600 hover:text-black"
+        >
           Profile
-        </a>
+        </button>
         <button
           onClick={handleLogout}
           className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-700"

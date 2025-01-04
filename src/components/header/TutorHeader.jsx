@@ -9,6 +9,9 @@ const TutorHeader = () => {
   const handleLogout = () => {
     logoutUser(navigate);
   };
+  const handleNavigateProfile = () => {
+    navigate("/tutor/profile");
+  };
 
   return (
     <header className="flex justify-between items-center p-4 bg-white">
@@ -17,9 +20,12 @@ const TutorHeader = () => {
         <a href="/tutor/courses" className="text-gray-600 hover:text-black">
           My Courses
         </a>
-        <a href="/tutor/assessments" className="text-gray-600 hover:text-black">
-          Assessments
-        </a>
+        <button
+          onClick={handleNavigateProfile}
+          className="text-gray-600 hover:text-black"
+        >
+          Profile
+        </button>
         <button
           onClick={handleLogout}
           className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-700"

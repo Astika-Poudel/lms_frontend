@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import TutorDashboard from "./pages/dashboard/TutorDashboard";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import CreateCourse from "./pages/courses/CreateCourse";
+import Profile from "./pages/profile/Profile";
 
 const App = () => {
   const { isAuth, loading, user } = UserData();
@@ -43,7 +44,7 @@ const App = () => {
         return <Navigate to="/dashboard/student" />;
       default:
         return <Home />;
-    }    
+    }
   };
 
   const ProtectedRoute = ({ children, role }) => {
@@ -71,7 +72,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/admin/create-courses"
               element={
                 <ProtectedRoute role="admin">
@@ -79,13 +80,29 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/profile"
+              element={
+                <ProtectedRoute role="admin">
+                  <Profile user={user} />
+                </ProtectedRoute>
+              }
+            />
 
-          
+
             <Route
               path="/dashboard/tutor"
               element={
                 <ProtectedRoute role="tutor">
                   <TutorDashboard />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/tutor/profile"
+              element={
+                <ProtectedRoute role="tutor">
+                  <Profile user={user} />
                 </ProtectedRoute>
               }
             />
@@ -98,6 +115,14 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+             <Route
+              path="/student/profile"
+              element={
+                <ProtectedRoute role="student">
+                  <Profile user={user} />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </BrowserRouter>
       )}
@@ -106,4 +131,3 @@ const App = () => {
 };
 
 export default App;
-                                                                                                         
