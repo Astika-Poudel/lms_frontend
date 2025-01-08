@@ -11,11 +11,15 @@ const AdminHeader = () => {
   };
 
   const handleNavigateCreateCourse = () => {
-    navigate("/admin/create-courses");
+    navigate("/admin/course/new");
   };
 
   const handleNavigateProfile = () => {
     navigate("/admin/profile");
+  };
+
+  const handleNavigateCourses = () => {
+    navigate("/course/all"); 
   };
 
   return (
@@ -27,6 +31,12 @@ const AdminHeader = () => {
         LearnNepal
       </h1>
       <nav className="space-x-4">
+        <button
+          onClick={handleNavigateCourses}
+          className="text-gray-600 hover:text-black"
+        >
+          Courses
+        </button>
         <button
           onClick={handleNavigateCreateCourse}
           className="text-gray-600 hover:text-black"

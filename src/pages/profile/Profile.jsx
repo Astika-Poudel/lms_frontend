@@ -34,10 +34,6 @@ const Profile = ({ user }) => {
             <dd className="mt-1 text-sm text-gray-700 sm:col-span-2 sm:mt-0">{user.email}</dd>
           </div>
           <div className="px-6 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-            <dt className="text-sm font-medium text-gray-900">Password</dt>
-            <dd className="mt-1 text-sm text-gray-700 sm:col-span-2 sm:mt-0">{user.password}</dd>
-          </div>
-          <div className="px-6 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
             <dt className="text-sm font-medium text-gray-900">Role</dt>
             <dd className="mt-1 text-sm text-gray-700 sm:col-span-2 sm:mt-0">{user.role}</dd>
           </div>

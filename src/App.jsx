@@ -13,8 +13,10 @@ import Loading from "./components/loading/loading";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import TutorDashboard from "./pages/dashboard/TutorDashboard";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
-import CreateCourse from "./pages/courses/CreateCourse";
+import CreateCourses from "./pages/courses/CreateCourses";
 import Profile from "./pages/profile/Profile";
+import Courses from "./pages/courses/Courses";
+
 
 const App = () => {
   const { isAuth, loading, user } = UserData();
@@ -73,18 +75,27 @@ const App = () => {
               }
             />
             <Route
-              path="/admin/create-courses"
+              path="/admin/course/new"
               element={
                 <ProtectedRoute role="admin">
-                  <CreateCourse />
+                  <CreateCourses />
                 </ProtectedRoute>
               }
             />
+            
             <Route
               path="/admin/profile"
               element={
                 <ProtectedRoute role="admin">
                   <Profile user={user} />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/course/all"
+              element={
+                <ProtectedRoute role="admin">
+                  <Courses />
                 </ProtectedRoute>
               }
             />

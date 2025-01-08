@@ -3,13 +3,17 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import "./index.css";
 import { UserContextProvider } from './context/UserContext.jsx';
+import { CourseContextProvider } from './context/CourseContext.jsx';
 
 export const LMS_Backend = "http://localhost:5000";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <UserContextProvider>
-      <App />
+      <CourseContextProvider>
+          <App />
+      </CourseContextProvider>
+      
     </UserContextProvider>
   </StrictMode>,
 );
