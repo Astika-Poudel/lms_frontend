@@ -9,17 +9,36 @@ const StudentHeader = () => {
   const handleLogout = () => {
     logoutUser(navigate);
   };
+
   const handleNavigateProfile = () => {
     navigate("/student/profile");
   };
 
+  const handleNavigateCourses = () => {
+    navigate("/student/course/all"); 
+  };
+
+  const handleNavigateMyCourses = () => {
+    navigate("/student/courses"); 
+  };
+
   return (
     <header className="flex justify-between items-center p-4 bg-white">
-      <h1 className="text-2xl font-bold text-[#134e4a]">LearnNepal</h1>
+      <h1 className="text-2xl font-bold text-[#134e4a]">
+        <button
+          onClick={handleNavigateCourses}
+          className="text-gray-600 hover:text-black"
+        >
+          LearnNepal
+        </button>
+      </h1>
       <nav className="space-x-4">
-        <a href="/student/courses" className="text-gray-600 hover:text-black">
+      <button
+          onClick={handleNavigateMyCourses}
+          className="text-gray-600 hover:text-black"
+        >
           My Courses
-        </a>
+        </button>
         <button
           onClick={handleNavigateProfile}
           className="text-gray-600 hover:text-black"

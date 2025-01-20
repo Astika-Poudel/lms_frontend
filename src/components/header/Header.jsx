@@ -13,6 +13,7 @@ import {
 } from '@headlessui/react';
 import { ChevronDownIcon, Bars3Icon, XMarkIcon, PlayCircleIcon, PhoneIcon } from '@heroicons/react/20/solid';
 import { ChartPieIcon, CursorArrowRaysIcon, FingerPrintIcon } from '@heroicons/react/24/outline';
+import logo from '../../assets/logo.png';
 
 const courses = [
   { name: 'Course 1', description: 'Learn the basics', href: '#', icon: ChartPieIcon },
@@ -29,11 +30,12 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white text-teal-900 shadow-md">
-      <nav aria-label="Global" className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
+    <header className="bg-white text-teal-900 shadow-md py-4"> {/* Reduced padding for smaller header */}
+      <nav aria-label="Global" className="mx-auto flex max-w-7xl items-center justify-between px-4 lg:px-6"> {/* Reduced padding */}
         {/* Logo Section */}
-        <div className="flex lg:flex-1">
-          <Link to="/" className="-m-1.5 p-1.5 text-2xl font-bold text-navy-900"> {/* Logo color changed to navy blue */}
+        <div className="flex lg:flex-1 items-center justify-start">
+          <Link to="/" className="flex items-center text-xl font-bold text-navy-900"> {/* Reduced text size */}
+            <img src={logo} alt="LearnNepal Logo" className="h-16 w-auto mr-2" /> {/* Reduced logo size */}
             LearnNepal
           </Link>
         </div>
@@ -51,7 +53,7 @@ export default function Header() {
         </div>
 
         {/* Main Menu */}
-        <PopoverGroup className="hidden lg:flex lg:gap-x-12">
+        <PopoverGroup className="hidden lg:flex lg:gap-x-8">
           <Popover className="relative">
             <PopoverButton className="flex items-center gap-x-1 text-sm font-semibold text-teal-900">
               Courses
@@ -173,3 +175,4 @@ export default function Header() {
     </header>
   );
 }
+

@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { CourseData } from "../../context/CourseContext";
 
-const CreateCourse = () => {
-  const { createCourse, btnLoading } = CourseData();
+const EditCourse = () => {
+  const { editCourse, courses, btnLoading } = CourseData();
   const navigate = useNavigate();
+  const { id } = useParams();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -16,6 +17,21 @@ const CreateCourse = () => {
   });
   const [file, setFile] = useState(null);
 
+  // Load existing course data
+  useEffect(() => {
+    const course = courses.find((c) => c._id === id);
+    if (course) {
+      setFormData({
+        title: course.title,
+        description: course.description,
+        category: course.category,
+        duration: course.duration,
+        price: course.price,
+        Tutor: course.Tutor,
+      });
+    }
+  }, [id, courses]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -25,25 +41,23 @@ const CreateCourse = () => {
     setFile(e.target.files[0]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!file) {
-      alert("Please upload an image for the course.");
-      return;
+    try {
+        const updatedData = Object.fromEntries(
+         Object.entries(formData).filter(([_, value]) => value !== "")
+          );
+          await editCourse(id, updatedData, file);
+          navigate("/admin/course/all"); 
+    } catch (error) {
+      console.error("Failed to update course:", error);
     }
-    createCourse(formData, file, (id) => {
-      if (id) {
-        navigate(`/admin/add-lecture/course/${id}`); 
-      } else {
-        alert("Failed to create course.");
-      }
-    });
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">Create New Course</h2>
+      <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">Edit Course</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="form-group">
           <label htmlFor="title" className="block text-gray-700 font-medium mb-2">Course Title</label>
@@ -129,16 +143,15 @@ const CreateCourse = () => {
           />
         </div>
 
-      
         <div className="form-group">
-          <label htmlFor="file" className="block text-gray-700 font-medium mb-2">Course Image</label>
+          <label htmlFor="file" className="block text-gray-700 font-medium mb-2">Course Image (Optional)</label>
           <input
             type="file"
             id="file"
             onChange={handleFileChange}
-            required
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <p className="text-sm text-gray-500 mt-1">Only upload if you want to change the existing image</p>
         </div>
 
         <div className="flex justify-center">
@@ -147,7 +160,7 @@ const CreateCourse = () => {
             disabled={btnLoading}
             className="w-full px-4 py-2 bg-blue-200 text-black font-semibold rounded-md border border-blue-300 hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-blue-100"
           >
-            {btnLoading ? "Creating..." : "Create Course"}
+            {btnLoading ? "Updating..." : "Update Course"}
           </button>
         </div>
       </form>
@@ -155,4 +168,4 @@ const CreateCourse = () => {
   );
 };
 
-export default CreateCourse;
+export default EditCourse;

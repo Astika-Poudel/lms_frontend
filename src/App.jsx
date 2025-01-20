@@ -16,7 +16,9 @@ import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import CreateCourses from "./pages/courses/CreateCourses";
 import Profile from "./pages/profile/Profile";
 import Courses from "./pages/courses/Courses";
-
+import AdminCourse from "./pages/courses/AdminCourse";
+import AddLecture from "./pages/courses/AddLecture";
+import EditCourse from "./pages/courses/EditCourse";
 
 const App = () => {
   const { isAuth, loading, user } = UserData();
@@ -82,7 +84,15 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            
+            <Route
+              path="/admin/add-lecture/course/:id"
+              element={
+                <ProtectedRoute role="admin">
+                  <AddLecture />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/admin/profile"
               element={
@@ -91,14 +101,23 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-             <Route
-              path="/course/all"
+            <Route
+              path="/admin/course/all"
               element={
                 <ProtectedRoute role="admin">
-                  <Courses />
+                  <AdminCourse />
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/edit-course/:id"
+              element={
+                <ProtectedRoute role="admin">
+                  <EditCourse />
+                </ProtectedRoute>
+              }
+            />
+          
 
 
             <Route
@@ -109,7 +128,7 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/tutor/profile"
               element={
                 <ProtectedRoute role="tutor">
@@ -126,11 +145,19 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/student/profile"
               element={
                 <ProtectedRoute role="student">
                   <Profile user={user} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/course/all"
+              element={
+                <ProtectedRoute role="student">
+                  <Courses />
                 </ProtectedRoute>
               }
             />

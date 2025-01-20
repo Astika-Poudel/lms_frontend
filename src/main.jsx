@@ -5,7 +5,7 @@ import "./index.css";
 import { UserContextProvider } from './context/UserContext.jsx';
 import { CourseContextProvider } from './context/CourseContext.jsx';
 
-export const LMS_Backend = "http://localhost:5000";
+export const LMS_Backend = "http://localhost:7000";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

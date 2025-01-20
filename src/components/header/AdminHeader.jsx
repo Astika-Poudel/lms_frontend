@@ -19,7 +19,7 @@ const AdminHeader = () => {
   };
 
   const handleNavigateCourses = () => {
-    navigate("/course/all"); 
+    navigate("/admin/course/all"); 
   };
 
   return (

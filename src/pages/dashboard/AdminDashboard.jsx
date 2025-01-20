@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { LMS_Backend } from "../../main"; 
+import { LMS_Backend } from "../../main";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -8,6 +8,7 @@ const AdminDashboard = () => {
     totalStudents: 0,
     totalTutors: 0,
   });
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -37,14 +38,18 @@ const AdminDashboard = () => {
         }
       } catch (error) {
         if (error.response) {
-          console.error("Error fetching stats:", error.response.data); 
+          console.error("Error fetching stats:", error.response.data);
         } else {
           console.error("Error fetching stats:", error.message);
         }
       }
     };
+
+  
+
     fetchStats();
-  }, []); 
+    
+  }, []);
 
   return (
     <div className="p-4">
@@ -65,6 +70,21 @@ const AdminDashboard = () => {
           <h2 className="text-lg font-semibold">Total Tutors</h2>
           <p>{stats.totalTutors}</p>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-3xl font-bold text-[#134e4a]">Enrolled Students</h2>
+        <ul className="mt-4">
+          {enrolledStudents.length > 0 ? (
+            enrolledStudents.map((student, index) => (
+              <li key={index} className="p-2 border-b border-gray-300">
+                {student.name} ({student.email})
+              </li>
+            ))
+          ) : (
+            <p>No enrolled students found.</p>
+          )}
+        </ul>
       </div>
     </div>
   );
