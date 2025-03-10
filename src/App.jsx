@@ -19,6 +19,10 @@ import Courses from "./pages/courses/Courses";
 import AdminCourse from "./pages/courses/AdminCourse";
 import AddLecture from "./pages/courses/AddLecture";
 import EditCourse from "./pages/courses/EditCourse";
+import EditLecture from "./pages/courses/EditLecture";
+import CourseDetails from "./pages/courses/CourseDetails";
+import AdminCourseDetail from "./pages/courses/AdminCourseDetail";
+import PaymentPage from "./pages/courses/PaymentPage";
 
 const App = () => {
   const { isAuth, loading, user } = UserData();
@@ -117,6 +121,22 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/edit-lecture/:id"
+              element={
+                <ProtectedRoute role="admin">
+                  <EditLecture />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/course-detail/:id"
+              element={
+                <ProtectedRoute role="admin">
+                  <AdminCourseDetail />
+                </ProtectedRoute>
+              }
+            />
           
 
 
@@ -158,6 +178,22 @@ const App = () => {
               element={
                 <ProtectedRoute role="student">
                   <Courses />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/payment/:id"
+              element={
+                <ProtectedRoute role="student">
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/coursedetails/:id"
+              element={
+                <ProtectedRoute role="student">
+                  <CourseDetails/>
                 </ProtectedRoute>
               }
             />

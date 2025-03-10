@@ -29,9 +29,12 @@ const AdminCourse = () => {
     navigate("/admin/course/new"); // Navigate to the course creation page
   };
 
+  const handleViewCourseDetail = (id) => {
+    navigate(`/admin/course-detail/${id}`); // Navigate to the course detail page with course ID
+  };
+
   return (
     <div className="courses p-6">
-      {/* Create Course Button */}
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-3xl font-bold text-center text-[#134e4a]">Available Courses</h2>
         <button
@@ -50,7 +53,8 @@ const AdminCourse = () => {
             return (
               <div
                 key={course._id}
-                className="course-item bg-white shadow-md rounded-lg overflow-hidden hover:shadow-xl transition duration-300"
+                className="course-item bg-white shadow-md rounded-lg overflow-hidden hover:shadow-xl transition duration-300 cursor-pointer"
+                onClick={() => handleViewCourseDetail(course._id)} // Handle card click
               >
                 <div className="p-4">
                   {course.image && (
@@ -68,19 +72,22 @@ const AdminCourse = () => {
                     <p className="text-sm text-gray-500">Duration: {course.duration} Month</p>
                   </div>
                   <div className="mt-6 flex justify-between">
-                    {/* Edit button at the start */}
                     <button
                       className="edit-btn px-4 py-2 bg-[#134e4a] text-white font-semibold rounded-lg hover:bg-[#0c3f3b] transition duration-300"
-                      onClick={() => handleEdit(course._id)} // Navigate to edit page with course ID
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent clicking the edit button from triggering the card click
+                        handleEdit(course._id);
+                      }}
                     >
                       Edit
                     </button>
-                    
-                    {/* Delete button at the end */}
                     <button
                       className={`delete-btn px-4 py-2 bg-[#2f6b68] text-white font-semibold rounded-lg hover:bg-[#245a53] transition duration-300 ${btnLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      onClick={() => handleDelete(course._id)} // Pass course ID to delete
-                      disabled={btnLoading} // Disable button while loading
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent clicking the delete button from triggering the card click
+                        handleDelete(course._id);
+                      }}
+                      disabled={btnLoading}
                     >
                       {btnLoading ? "Deleting..." : "Delete"}
                     </button>

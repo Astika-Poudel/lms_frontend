@@ -35,7 +35,7 @@ const AdminHeader = () => {
           onClick={handleNavigateCourses}
           className="text-gray-600 hover:text-black"
         >
-          Courses
+          Manage Courses
         </button>
         <button
           onClick={handleNavigateCreateCourse}

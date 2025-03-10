@@ -7,19 +7,90 @@ const CourseContext = createContext();
 
 export const CourseContextProvider = ({ children }) => {
   const [courses, setCourses] = useState([]);
+  const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(false);
   const [btnLoading, setBtnLoading] = useState(false);
+  const [lecturesLoading, setLecturesLoading] = useState(false);
+
+  // Helper function to check token
+  const checkToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Unauthorized: No token found");
+      return false;
+    }
+    return true;
+  };
+
+  // Helper function to handle errors
+  const handleError = (error) => {
+    console.error(error);
+    toast.error(error.response?.data?.message || "An error occurred");
+  };
 
   // Fetch all courses
   const fetchCourses = async () => {
     setLoading(true);
     try {
       const { data } = await axios.get(`${LMS_Backend}/api/course/all`, { timeout: 5000 });
-      console.log(data.courses);
-      setCourses(data.courses);
+      console.log("Courses with lectures:", data.courses);
+
+      if (data && Array.isArray(data.courses)) {
+        setCourses(data.courses);
+      } else {
+        console.error("Courses data not found in response");
+      }
     } catch (error) {
-      console.error("Error fetching courses:", error);
-      toast.error("Failed to load courses");
+      handleError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch lectures for a specific course
+// CourseContext.jsx
+const fetchLectures = async (id) => {
+  setLecturesLoading(true);
+  try {
+      const token = localStorage.getItem("token"); // Get token here
+      if (!token) {
+          toast.error("Unauthorized: No token found (fetchLectures)");
+          setLecturesLoading(false); // Ensure loading is set to false
+          return; // Stop the function execution
+      }
+
+      const { data } = await axios.get(`${LMS_Backend}/api/lectures/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }, // Use the token variable
+      });
+
+      if (data && data.lectures) {
+          setLectures(data.lectures);
+      } else {
+          toast.error("No lectures found for this course.");
+      }
+  } catch (error) {
+      handleError(error);
+      return [];
+  } finally {
+      setLecturesLoading(false);
+      return [];
+  }
+};
+
+
+
+  // Fetch a single lecture
+  const fetchLecture = async (id) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${LMS_Backend}/api/lecture/${id}`);
+      if (data && data.lecture) {
+        return data.lecture;
+      } else {
+        toast.error("Lecture not found.");
+      }
+    } catch (error) {
+      handleError(error);
     } finally {
       setLoading(false);
     }
@@ -35,44 +106,49 @@ export const CourseContextProvider = ({ children }) => {
     formData.append("file", file);
 
     try {
+      if (!checkToken()) return;
+
       const { data } = await axios.post(`${LMS_Backend}/api/admin/course/new`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      toast.success(data.message);
-      setBtnLoading(false);
 
-      if (callback) callback(data.course._id);
-
-      fetchCourses(); 
+      if (data) {
+        toast.success(data.message);
+        if (callback) callback(data.course._id);
+        fetchCourses();
+      } else {
+        toast.error("Failed to create course: No response data");
+      }
     } catch (error) {
+      handleError(error);
+    } finally {
       setBtnLoading(false);
-      toast.error(error.response?.data?.message || "Failed to create course");
     }
   };
-
-
-
 
   // Delete a course
   const deleteCourse = async (id) => {
     setBtnLoading(true);
     try {
-      const token = localStorage.getItem("token"); // Get token for authorization
-  
+      if (!checkToken()) return;
+
       const { data } = await axios.delete(`${LMS_Backend}/api/course/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`, // Send token in the header
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-  
-      toast.success(data.message);
-      setCourses((prevCourses) => prevCourses.filter((course) => course._id !== id)); 
-      setBtnLoading(false);
+
+      if (data) {
+        toast.success(data.message);
+        setCourses((prevCourses) => prevCourses.filter((course) => course._id !== id));
+      } else {
+        toast.error("Failed to delete course: No response data");
+      }
     } catch (error) {
+      handleError(error);
+    } finally {
       setBtnLoading(false);
-      toast.error(error.response?.data?.message || "Failed to delete course");
     }
   };
 
@@ -86,38 +162,58 @@ export const CourseContextProvider = ({ children }) => {
     formData.append("file", file);
 
     try {
+      if (!checkToken()) return;
+
       const { data } = await axios.post(`${LMS_Backend}/api/admin/course/${id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      toast.success(data.message);
-      setBtnLoading(false);
+
+      if (data) {
+        toast.success(data.message);
+      } else {
+        toast.error("Failed to add lecture: No response data");
+      }
     } catch (error) {
+      handleError(error);
+    } finally {
       setBtnLoading(false);
-      toast.error(error.response?.data?.message || "Failed to add lecture");
     }
   };
 
-  // Delete a lecture from a course
-  const deleteLecture = async (id) => {
-    setBtnLoading(true);
-    try {
-      const { data } = await axios.delete(`${LMS_Backend}/api/admin/lecture/${id}`);
+  // Delete a lecture
+const deleteLecture = async (id) => {
+  setBtnLoading(true);
+  try {
+    if (!checkToken()) return;
+
+    console.log("Deleting lecture with ID:", id); // Debugging
+    const { data } = await axios.delete(`${LMS_Backend}/api/admin/lecture/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+
+    if (data) {
+      console.log("Lecture deleted successfully:", data.message); // Debugging
       toast.success(data.message);
-      setBtnLoading(false);
-    } catch (error) {
-      setBtnLoading(false);
-      toast.error(error.response?.data?.message || "Failed to delete lecture");
+      setLectures((prevLectures) => prevLectures.filter((lecture) => lecture._id !== id));
+    } else {
+      console.error("Failed to delete lecture: No response data"); // Debugging
+      toast.error("Failed to delete lecture: No response data");
     }
-  };
+  } catch (error) {
+    console.error("Error deleting lecture:", error); // Debugging
+    handleError(error);
+  } finally {
+    setBtnLoading(false);
+  }
+};
 
-
+  // Edit a course
   const editCourse = async (id, courseData, file) => {
     setBtnLoading(true);
     const formData = new FormData();
-    
-    // Add all course data to formData
     Object.keys(courseData).forEach((key) => {
       if (courseData[key] !== undefined && courseData[key] !== null) {
         formData.append(key, courseData[key]);
@@ -126,46 +222,77 @@ export const CourseContextProvider = ({ children }) => {
     if (file) {
       formData.append("file", file);
     }
+
     try {
-     
-      const token = localStorage.getItem("token"); 
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-  
+      if (!checkToken()) return;
+
       const { data } = await axios.put(
-        `${LMS_Backend}/api/admin/course/edit/${id}`, 
+        `${LMS_Backend}/api/admin/course/edit/${id}`,
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data", 
-            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
-      
-      setCourses((prevCourses) =>
-        prevCourses.map((course) =>
-          course._id === id ? data.course : course 
-        )
-      );
-  
-      toast.success(data.message); 
-      setBtnLoading(false); 
-      return data.course; 
-  
-    } catch (error) {
-      console.error("Edit course error:", error.response?.data || error.message);
-      setBtnLoading(false); 
-      
-      // Handle specific error messages
-      if (error.response?.data?.message === "Please Login") {
-        toast.error("Please login again to continue");
+
+      if (data) {
+        setCourses((prevCourses) =>
+          prevCourses.map((course) => (course._id === id ? data.course : course))
+        );
+        toast.success(data.message);
+        return data.course;
       } else {
-        toast.error(error.response?.data?.message || "Failed to update course"); 
+        toast.error("Failed to update course: No response data");
       }
-      
-      throw error;
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
+  // Edit a lecture
+  const editLecture = async (id, lectureData, file) => {
+    setBtnLoading(true);
+    const formData = new FormData();
+    Object.keys(lectureData).forEach((key) => {
+      if (lectureData[key] !== undefined && lectureData[key] !== null) {
+        formData.append(key, lectureData[key]);
+      }
+    });
+    if (file) {
+      formData.append("file", file);
+    }
+
+    try {
+      if (!checkToken()) return;
+
+      const { data } = await axios.put(
+        `${LMS_Backend}/api/admin/lecture/edit/${id}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (data) {
+        setLectures((prevLectures) =>
+          prevLectures.map((lecture) => (lecture._id === id ? data.lecture : lecture))
+        );
+        toast.success(data.message);
+        return data.lecture;
+      } else {
+        toast.error("Failed to update lecture: No response data");
+      }
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBtnLoading(false);
     }
   };
 
@@ -174,14 +301,20 @@ export const CourseContextProvider = ({ children }) => {
       value={{
         courses,
         setCourses,
+        lectures,
+        setLectures,
         loading,
         btnLoading,
+        lecturesLoading,
         fetchCourses,
+        fetchLectures,
+        fetchLecture,
         createCourse,
         deleteCourse,
         addLecture,
         deleteLecture,
         editCourse,
+        editLecture,
       }}
     >
       {children}

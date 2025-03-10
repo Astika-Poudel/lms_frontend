@@ -11,6 +11,40 @@ export const UserContextProvider = ({ children }) => {
   const [btnLoading, setBtnLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const checkToken = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      console.log("Token from localStorage:", token);
+      
+      if (!token) {
+        setIsAuth(false);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await axios.get(`${LMS_Backend}/api/user/check-token`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (data.valid) {
+        setIsAuth(true);
+        setUser(data.user);
+      } else {
+        localStorage.removeItem("token");
+        setIsAuth(false);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.log("Token validation error:", error);
+      console.log(error.response?.data?.message || "Token validation failed.");
+      localStorage.removeItem("token");
+      setIsAuth(false);
+      setLoading(false);
+    }
+  };
+
   const loginUser = async (username_or_email, password, navigate) => {
     setBtnLoading(true);
     try {
@@ -39,7 +73,7 @@ export const UserContextProvider = ({ children }) => {
       localStorage.removeItem("token");
       setIsAuth(false);
       setUser(null);
-      navigate("/"); 
+      navigate("/");
     } catch (error) {
       console.log("Error logging out:", error);
     }
@@ -90,12 +124,13 @@ export const UserContextProvider = ({ children }) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error("No token found, please log in");
+        setLoading(false);
+        return;
       }
 
       const { data } = await axios.get(`${LMS_Backend}/api/user/me`, {
         headers: {
-          Authorization: `Bearer ${token}`, 
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -109,7 +144,9 @@ export const UserContextProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    fetchUser();
+    checkToken();
+    // No need to call fetchUser separately, as checkToken already gets user info
+    // Removed fetchUser() call to avoid duplicate requests
   }, []);
 
   return (
@@ -125,6 +162,7 @@ export const UserContextProvider = ({ children }) => {
         registerUser,
         verifyOtp,
         logoutUser,
+        checkToken,
       }}
     >
       {children}
