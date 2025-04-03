@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CourseData } from "../../context/CourseContext";
-import { LMS_Backend } from "../../main";
 
 const CourseDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
   const { courses, fetchCourses, fetchLectures, lectures, lecturesLoading } = CourseData();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,51 +39,53 @@ const CourseDetails = () => {
     return <div className="text-center text-gray-700">Course not found.</div>;
   }
 
-  const imagePath = course.image ? `${LMS_Backend}/${course.image.replace(/\\/g, '/')}` : null;
-
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-3xl font-semibold text-gray-800 mb-4">{course.title}</h2>
-      <p className="text-gray-600 mb-4">{course.description}</p>
-      <p className="font-semibold">Category: {course.category}</p>
-      <p className="font-semibold">Duration: {course.duration} Hours</p>
-      <p className="font-semibold">Price: NPR {course.price}</p>
-
-      <button
-        onClick={() => navigate(`/payment/${id}`)}
-        className="mt-4 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+    <div className="max-w-5xl mx-auto p-6">
+      {/* Gradient Box */}
+      <div
+        className="rounded-lg p-6 shadow-lg"
+        style={{
+          background: "linear-gradient(to right, #012f3c, #015269)",
+        }}
       >
-        Enroll
-      </button>
+        <div>
+          <h2 className="text-3xl font-semibold text-white mb-4">{course.title}</h2>
+          <p className="text-gray-200 mb-4">{course.description}</p>
+          <div className="space-y-2">
+            <p className="font-semibold text-gray-200">Category: {course.category}</p>
+            <p className="font-semibold text-gray-200">Duration: {course.duration} Hours</p>
+            <p className="font-semibold text-gray-200">Price: NPR {course.price}</p>
+          </div>
+        </div>
 
-      {imagePath ? (
-        <img src={imagePath} alt={course.title} className="w-full h-64 object-cover mt-4 rounded-md" />
-      ) : (
-        <p className="text-gray-500 mt-4">Image not available</p>
-      )}
+        {/* Enroll Button at the Bottom-Right */}
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={() => navigate(`/payment/${id}`)}
+            className="px-6 py-2 bg-white text-[#012f3c] font-semibold rounded-lg hover:bg-gray-100 transition"
+          >
+            Enroll
+          </button>
+        </div>
+      </div>
 
-      <h3 className="text-2xl font-semibold text-gray-800 mt-6">Lectures</h3>
+      {/* What You Will Learn Section */}
+      <h3 className="text-2xl font-semibold text-gray-800 mt-6">What you will learn in this Course?</h3>
       {lecturesLoading ? (
-        <div className="text-center text-gray-700">Loading lectures...</div>
+        <div className="text-center text-gray-700">Loading course content...</div>
       ) : lectures && lectures.length > 0 ? (
-        <table className="min-w-full table-auto mt-4 border-collapse">
-          <thead>
-            <tr>
-              <th className="py-2 px-4 border-b text-left">Course No.</th>
-              <th className="py-2 px-4 border-b text-left">Lecture Title</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lectures.map((lecture, index) => (
-              <tr key={lecture._id} className="border-b hover:bg-gray-100">
-                <td className="py-2 px-4">{index + 1}</td>
-                <td className="py-2 px-4">{lecture.title}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="mt-4 bg-white rounded-lg shadow-md p-6">
+          {lectures.map((lecture, index) => (
+            <div key={lecture._id} className="flex items-start space-x-2 mb-3">
+              <span className="text-lg text-[#012f3c]">+</span>
+              <p className="text-gray-700">
+                Lesson {index + 1}: {lecture.title}
+              </p>
+            </div>
+          ))}
+        </div>
       ) : (
-        <p className="text-gray-500">No lectures available.</p>
+        <p className="text-gray-500">No course content available.</p>
       )}
     </div>
   );

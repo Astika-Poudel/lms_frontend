@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react"; // Added useEffect here
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { LMS_Backend } from "../main";
@@ -8,9 +8,23 @@ const CourseContext = createContext();
 export const CourseContextProvider = ({ children }) => {
   const [courses, setCourses] = useState([]);
   const [lectures, setLectures] = useState([]);
+  const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [btnLoading, setBtnLoading] = useState(false);
   const [lecturesLoading, setLecturesLoading] = useState(false);
+
+  const categories = [
+    "Programming",
+    "Web Development",
+    "Data Science",
+    "Machine Learning",
+    "Graphic Design",
+    "Digital Marketing",
+    "Business",
+    "Language Learning",
+    "Personal Development",
+    "Other"
+  ];
 
   // Helper function to check token
   const checkToken = () => {
@@ -24,7 +38,7 @@ export const CourseContextProvider = ({ children }) => {
 
   // Helper function to handle errors
   const handleError = (error) => {
-    console.error(error);
+    console.error("Course Error:", error);
     toast.error(error.response?.data?.message || "An error occurred");
   };
 
@@ -33,7 +47,7 @@ export const CourseContextProvider = ({ children }) => {
     setLoading(true);
     try {
       const { data } = await axios.get(`${LMS_Backend}/api/course/all`, { timeout: 5000 });
-      console.log("Courses with lectures:", data.courses);
+      console.log("Courses fetched:", data.courses);
 
       if (data && Array.isArray(data.courses)) {
         setCourses(data.courses);
@@ -47,37 +61,62 @@ export const CourseContextProvider = ({ children }) => {
     }
   };
 
-  // Fetch lectures for a specific course
-// CourseContext.jsx
-const fetchLectures = async (id) => {
-  setLecturesLoading(true);
-  try {
-      const token = localStorage.getItem("token"); // Get token here
+  // Fetch tutors
+  const fetchTutors = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
       if (!token) {
-          toast.error("Unauthorized: No token found (fetchLectures)");
-          setLecturesLoading(false); // Ensure loading is set to false
-          return; // Stop the function execution
+        toast.error("Unauthorized: No token found");
+        return;
+      }
+      const { data } = await axios.get(`${LMS_Backend}/api/users/tutors`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Tutors fetched:", data); // Debugging log
+      if (data && data.tutors) {
+        setTutors(data.tutors);
+      } else {
+        console.warn("No tutors found in response");
+        setTutors([]);
+      }
+    } catch (error) {
+      handleError(error);
+      setTutors([]); // Ensure tutors is reset on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // Fetch lectures for a specific course
+  const fetchLectures = async (id) => {
+    setLecturesLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Unauthorized: No token found (fetchLectures)");
+        return [];
       }
 
       const { data } = await axios.get(`${LMS_Backend}/api/lectures/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }, // Use the token variable
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (data && data.lectures) {
-          setLectures(data.lectures);
+        setLectures(data.lectures);
+        return data.lectures;
       } else {
-          toast.error("No lectures found for this course.");
+        toast.error("No lectures found for this course.");
+        return [];
       }
-  } catch (error) {
+    } catch (error) {
       handleError(error);
       return [];
-  } finally {
+    } finally {
       setLecturesLoading(false);
-      return [];
-  }
-};
-
-
+    }
+  };
 
   // Fetch a single lecture
   const fetchLecture = async (id) => {
@@ -184,31 +223,28 @@ const fetchLectures = async (id) => {
   };
 
   // Delete a lecture
-const deleteLecture = async (id) => {
-  setBtnLoading(true);
-  try {
-    if (!checkToken()) return;
+  const deleteLecture = async (id) => {
+    setBtnLoading(true);
+    try {
+      if (!checkToken()) return;
 
-    console.log("Deleting lecture with ID:", id); // Debugging
-    const { data } = await axios.delete(`${LMS_Backend}/api/admin/lecture/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
+      console.log("Deleting lecture with ID:", id); // Debugging
+      const { data } = await axios.delete(`${LMS_Backend}/api/admin/lecture/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
 
-    if (data) {
-      console.log("Lecture deleted successfully:", data.message); // Debugging
-      toast.success(data.message);
-      setLectures((prevLectures) => prevLectures.filter((lecture) => lecture._id !== id));
-    } else {
-      console.error("Failed to delete lecture: No response data"); // Debugging
-      toast.error("Failed to delete lecture: No response data");
+      if (data) {
+        toast.success(data.message);
+        setLectures((prevLectures) => prevLectures.filter((lecture) => lecture._id !== id));
+      } else {
+        toast.error("Failed to delete lecture: No response data");
+      }
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBtnLoading(false);
     }
-  } catch (error) {
-    console.error("Error deleting lecture:", error); // Debugging
-    handleError(error);
-  } finally {
-    setBtnLoading(false);
-  }
-};
+  };
 
   // Edit a course
   const editCourse = async (id, courseData, file) => {
@@ -315,6 +351,9 @@ const deleteLecture = async (id) => {
         deleteLecture,
         editCourse,
         editLecture,
+        tutors,
+        categories,
+        fetchTutors,
       }}
     >
       {children}

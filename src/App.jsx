@@ -23,6 +23,13 @@ import EditLecture from "./pages/courses/EditLecture";
 import CourseDetails from "./pages/courses/CourseDetails";
 import AdminCourseDetail from "./pages/courses/AdminCourseDetail";
 import PaymentPage from "./pages/courses/PaymentPage";
+import MyCourses from "./pages/courses/MyCourses";
+import User from "./pages/management/User";
+import TutorCourses from "./pages/Tutor/TutorCourses";
+import AssignedTutors from "./pages/Tutor/AssignedTutors";
+import TutorCourseOverview from "./pages/Tutor/TutorCourseOverview";
+import TutorCreateQuiz from "./pages/Tutor/TutorCreateQuiz";
+import TutorQuizzes from "./pages/Tutor/TutorQuizzes";
 
 const App = () => {
   const { isAuth, loading, user } = UserData();
@@ -88,6 +95,15 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+             <Route
+              path="/admin/user-management"
+              element={
+                <ProtectedRoute role="admin">
+                  <User />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/admin/add-lecture/course/:id"
               element={
@@ -136,7 +152,15 @@ const App = () => {
                   <AdminCourseDetail />
                 </ProtectedRoute>
               }
-            />
+            /> 
+              <Route
+              path="/admin/course/assigned-tutors"
+              element={
+                <ProtectedRoute role="admin">
+                  <AssignedTutors />
+                </ProtectedRoute>
+              }
+            /> 
           
 
 
@@ -156,7 +180,48 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+             <Route
+              path="/tutor/courses"
+              element={
+                <ProtectedRoute role="tutor">
+                  <TutorCourses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tutor/quizzes" 
+              element={
+                <ProtectedRoute role="tutor">
+                  <TutorQuizzes />
+                </ProtectedRoute>
+              }
+            />
 
+            <Route
+              path="/tutor/messages"
+              element={
+                <ProtectedRoute role="tutor">
+                  <Profile user={user} />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/tutor/courseoverview/:id"
+              element={
+                <ProtectedRoute role="tutor">
+                  <TutorCourseOverview />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route 
+            path="/tutor/course/:courseId/create-quiz" 
+            element={
+              <ProtectedRoute role="tutor">
+                <TutorCreateQuiz />
+              </ProtectedRoute>
+            }
+            />
             <Route
               path="/dashboard/student"
               element={
@@ -194,6 +259,14 @@ const App = () => {
               element={
                 <ProtectedRoute role="student">
                   <CourseDetails/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/courses"
+              element={
+                <ProtectedRoute role="student">
+                  <MyCourses/>
                 </ProtectedRoute>
               }
             />

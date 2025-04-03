@@ -5,16 +5,18 @@ import { Elements, useStripe, useElements, CardNumberElement, CardExpiryElement,
 import axios from "axios";
 import { FaRegCreditCard, FaCalendarAlt, FaLock } from "react-icons/fa";
 import { CourseData } from "../../context/CourseContext";
+import { EnrollData } from "../../context/enrollContext";
 
 const stripePromise = loadStripe("pk_test_51QlN4iG11lLG2hVXLdZhuzJw24mf5grQNHAr4026e3rQV66czR2UCRJQgBrhbkFnRkE5elHkiNiMLdBCfFxLaQyU00w3pHsstP");
 
-const PaymentForm = ({ amount, courseTitle }) => {
+const PaymentForm = ({ amount, courseId, courseTitle }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
     const navigate = useNavigate();
+    const { enrollInCourse } = EnrollData(); // Get enroll function
 
     const handlePayment = async (e) => {
         e.preventDefault();
@@ -22,6 +24,7 @@ const PaymentForm = ({ amount, courseTitle }) => {
         setError(null);
 
         try {
+            // 1. Create a payment intent
             const { data } = await axios.post("http://localhost:7001/api/payment/create-payment-intent", { amount });
 
             if (!stripe || !elements) return;
@@ -33,6 +36,7 @@ const PaymentForm = ({ amount, courseTitle }) => {
                 return;
             }
 
+            // 2. Confirm the payment with Stripe
             const paymentResult = await stripe.confirmCardPayment(data.clientSecret, {
                 payment_method: {
                     card: cardElement,
@@ -45,8 +49,10 @@ const PaymentForm = ({ amount, courseTitle }) => {
             if (paymentResult.error) {
                 setError(paymentResult.error.message);
             } else {
+                // 3. If payment is successful, enroll the user in the course
+                await enrollInCourse(courseId); // Call enroll function from context
                 setSuccess(true);
-                setTimeout(() => navigate("/student/course/all"), 3000);
+                setTimeout(() => navigate("/student/courses"), 3000);
             }
         } catch (err) {
             setError("Payment failed. Try again.");
@@ -91,8 +97,8 @@ const PaymentForm = ({ amount, courseTitle }) => {
                     <div className="bg-white p-6 rounded shadow-lg text-center">
                         <h2 className="text-green-600 text-xl font-bold">Payment Successful!</h2>
                         <p className="text-gray-700">You are now enrolled in <strong>{courseTitle}</strong>.</p>
-                        <button onClick={() => navigate("/student/course/all")} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
-                            Go to Courses
+                        <button onClick={() => navigate("/student/courses")} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded">
+                            Go to My Courses
                         </button>
                     </div>
                 </div>
@@ -149,8 +155,10 @@ const PaymentPage = () => {
                 productUrl: window.location.href,
                 eventHandler: {
                     onSuccess() {
+                        // Enroll user in course after successful Khalti payment
+                        enrollUserInCourse(id);
                         alert("Payment Successful!");
-                        navigate("/student/course/all");
+                        navigate("/student/courses");
                     },
                     onError() {
                         alert("Payment Failed!");
@@ -162,6 +170,20 @@ const PaymentPage = () => {
             new window.KhaltiCheckout(config).show({ amount: data.amount * 100 });
         } catch (error) {
             setKhaltiError("Failed to initiate Khalti payment.");
+        }
+    };
+
+    // Function to enroll user in the course (shared with Khalti payment)
+    const enrollUserInCourse = async (courseId) => {
+        try {
+            const token = localStorage.getItem('token');
+            
+            await axios.post("http://localhost:7001/api/user/enroll-course", 
+                { courseId },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch (error) {
+            console.error("Error enrolling in course:", error);
         }
     };
 
@@ -201,7 +223,11 @@ const PaymentPage = () => {
                             </button>
                         </div>
                         <Elements stripe={stripePromise}>
-                            <PaymentForm amount={course.price} courseTitle={course.title} />
+                            <PaymentForm 
+                                amount={course.price} 
+                                courseId={course._id}
+                                courseTitle={course.title} 
+                            />
                         </Elements>
                     </div>
                 )}
