@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CourseData } from "../../context/CourseContext";
-import toast from "react-hot-toast";
 
 const EditLecture = () => {
   const { editLecture, lectures, btnLoading } = CourseData();
@@ -11,6 +10,7 @@ const EditLecture = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    type: "",
   });
   const [file, setFile] = useState(null);
 
@@ -18,9 +18,19 @@ const EditLecture = () => {
   useEffect(() => {
     const lecture = lectures.find((lecture) => lecture._id === id);
     if (lecture) {
+      // Determine the lecture type by checking the course's arrays
+      const course = lecture.course; // Assuming course is populated or fetched separately
+      let lectureType = "";
+      if (course?.beginnerLectures?.includes(lecture._id)) {
+        lectureType = "beginner";
+      } else if (course?.advancedLectures?.includes(lecture._id)) {
+        lectureType = "advanced";
+      }
+
       setFormData({
         title: lecture.title,
         description: lecture.description,
+        type: lectureType || "beginner", // Default to beginner if not found
       });
     }
   }, [id, lectures]);
@@ -45,12 +55,15 @@ const EditLecture = () => {
       // Call editLecture function to update the lecture
       await editLecture(id, updatedData, file);
       
-      // Success message and navigate to the course list page
-      toast.success("Lecture updated successfully.");
-      navigate("/admin/course/all");  // Redirect after successful update
+      // Navigate to the course detail page
+      const lecture = lectures.find((lecture) => lecture._id === id);
+      const courseId = lecture?.course?._id || lecture?.course; // Handle both populated and non-populated course field
+      if (!courseId) {
+        throw new Error("Course ID not found for the lecture.");
+      }
+      navigate(`/admin/course-detail/${courseId}`);  // Navigate to course detail page
     } catch (error) {
       console.error("Failed to update lecture:", error);
-      toast.error("Error occurred. Unable to update lecture.");
     }
   };
 
@@ -84,6 +97,21 @@ const EditLecture = () => {
             required
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="type" className="block text-gray-700 font-medium mb-2">Lecture Type</label>
+          <select
+            id="type"
+            name="type"
+            value={formData.type}
+            onChange={handleInputChange}
+            required
+            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="beginner">Beginner</option>
+            <option value="advanced">Advanced</option>
+          </select>
         </div>
 
         {/* File upload input */}

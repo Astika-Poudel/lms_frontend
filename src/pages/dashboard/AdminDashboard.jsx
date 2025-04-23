@@ -76,7 +76,7 @@ const AdminDashboard = () => {
       },
       title: {
         display: true,
-        text: "Admin Dashboard Statistics",
+        text: "Statistics",
       },
     },
   };

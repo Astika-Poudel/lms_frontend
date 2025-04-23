@@ -64,14 +64,6 @@ const TutorDashboard = () => {
           <h2 className="text-xl font-semibold">Students</h2>
           <p className="text-gray-700">{stats.totalStudents} Enrolled</p>
         </div>
-        <div className="bg-white shadow-md p-4 rounded-lg">
-          <h2 className="text-xl font-semibold">Assignments</h2>
-          <p className="text-gray-700">3 Pending Reviews</p>
-        </div>
-        <div className="bg-white shadow-md p-4 rounded-lg">
-          <h2 className="text-xl font-semibold">Messages</h2>
-          <p className="text-gray-700">2 Unread Queries</p>
-        </div>
       </div>
 
       <div className="mt-8 p-4 bg-white shadow-md rounded-lg">

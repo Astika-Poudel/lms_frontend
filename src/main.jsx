@@ -7,10 +7,14 @@ import { CourseContextProvider } from './context/CourseContext.jsx';
 import { EnrollContextProvider } from './context/enrollContext.jsx';
 import { NotificationContextProvider } from './context/NotificationContext.jsx';
 import { TutorContextProvider } from './context/TutorContext.jsx';
+import { BrowserRouter } from "react-router-dom";
+import React from "react";
+import ReactDOM from "react-dom/client";
 
 export const LMS_Backend = "http://localhost:7001";
 
 createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
   <UserContextProvider>
     <CourseContextProvider>
       <EnrollContextProvider>
@@ -22,4 +26,5 @@ createRoot(document.getElementById('root')).render(
       </EnrollContextProvider>
     </CourseContextProvider>
   </UserContextProvider>
+  </BrowserRouter>
 );

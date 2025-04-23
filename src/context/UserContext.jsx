@@ -29,12 +29,15 @@ export const UserContextProvider = ({ children }) => {
             if (data.valid) {
                 setIsAuth(true);
                 setUser(data.user);
+                localStorage.setItem("user", JSON.stringify(data.user)); // Store user in localStorage for CourseContext
             } else {
                 localStorage.removeItem("token");
+                localStorage.removeItem("user");
                 setIsAuth(false);
             }
         } catch (error) {
             localStorage.removeItem("token");
+            localStorage.removeItem("user");
             setIsAuth(false);
             setError(error.response?.data?.message || "Token validation failed");
         } finally {
@@ -52,6 +55,7 @@ export const UserContextProvider = ({ children }) => {
 
             toast.success(data.message);
             localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user)); // Store user in localStorage
             setUser(data.user);
             setIsAuth(true);
             navigate(`/dashboard/${data.user.role.toLowerCase()}`);
@@ -64,6 +68,7 @@ export const UserContextProvider = ({ children }) => {
 
     const logoutUser = (navigate) => {
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setIsAuth(false);
         setUser(null);
         navigate("/");

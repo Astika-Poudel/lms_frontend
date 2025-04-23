@@ -59,6 +59,27 @@ export const NotificationContextProvider = ({ children }) => {
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.warn("No token found. User might not be logged in.");
+        return;
+      }
+      await axios.patch(
+        `http://localhost:7001/api/notifications/mark-all-read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error.response || error);
+    }
+  };
+
   useEffect(() => {
     socket.on("connect", () => {
       console.log("Socket.IO connected:", socket.id);
@@ -66,6 +87,10 @@ export const NotificationContextProvider = ({ children }) => {
         socket.emit("join", user._id.toString());
         console.log(`Joined room for user ${user._id}`);
       }
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket.IO connection error:", error);
     });
 
     socket.on("newNotification", (notification) => {
@@ -80,6 +105,7 @@ export const NotificationContextProvider = ({ children }) => {
     return () => {
       socket.off("newNotification");
       socket.off("connect");
+      socket.off("connect_error");
     };
   }, [user?._id]);
 
@@ -89,6 +115,7 @@ export const NotificationContextProvider = ({ children }) => {
         notifications,
         fetchNotifications,
         markAsRead,
+        markAllAsRead,
       }}
     >
       {children}

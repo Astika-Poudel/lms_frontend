@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CourseData } from "../../context/CourseContext";
 
 const EditCourse = () => {
-  const { editCourse, courses, btnLoading } = CourseData();
+  const { editCourse, courses, btnLoading, categories, tutors, fetchTutors } = CourseData();
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -17,20 +17,23 @@ const EditCourse = () => {
   });
   const [file, setFile] = useState(null);
 
-  // Load existing course data
   useEffect(() => {
+    if (tutors.length === 0) {
+      fetchTutors();
+    }
+
     const course = courses.find((c) => c._id === id);
     if (course) {
       setFormData({
-        title: course.title,
-        description: course.description,
-        category: course.category,
-        duration: course.duration,
-        price: course.price,
-        Tutor: course.Tutor,
+        title: course.title || "",
+        description: course.description || "",
+        category: course.category || "",
+        duration: course.duration || "",
+        price: course.price || "",
+        Tutor: course.Tutor ? `${course.Tutor.firstname} ${course.Tutor.lastname}` : "",
       });
     }
-  }, [id, courses]);
+  }, [id, courses, tutors, fetchTutors]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -43,13 +46,12 @@ const EditCourse = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-        const updatedData = Object.fromEntries(
-         Object.entries(formData).filter(([_, value]) => value !== "")
-          );
-          await editCourse(id, updatedData, file);
-          navigate("/admin/course/all"); 
+      const updatedData = Object.fromEntries(
+        Object.entries(formData).filter(([_, value]) => value !== "")
+      );
+      await editCourse(id, updatedData, file);
+      navigate("/admin/course/all");
     } catch (error) {
       console.error("Failed to update course:", error);
     }
@@ -89,16 +91,21 @@ const EditCourse = () => {
 
         <div className="form-group">
           <label htmlFor="category" className="block text-gray-700 font-medium mb-2">Category</label>
-          <input
-            type="text"
+          <select
             id="category"
             name="category"
             value={formData.category}
             onChange={handleInputChange}
-            placeholder="Enter course category"
             required
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          >
+            <option value="">Select a category</option>
+            {categories?.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form-group">
@@ -131,16 +138,25 @@ const EditCourse = () => {
 
         <div className="form-group">
           <label htmlFor="Tutor" className="block text-gray-700 font-medium mb-2">Tutor Name</label>
-          <input
-            type="text"
+          <select
             id="Tutor"
             name="Tutor"
             value={formData.Tutor}
             onChange={handleInputChange}
-            placeholder="Enter tutor name"
             required
             className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          >
+            <option value="">Select a tutor</option>
+            {tutors.length > 0 ? (
+              tutors.map((tutor) => (
+                <option key={tutor._id} value={`${tutor.firstname} ${tutor.lastname}`}>
+                  {tutor.firstname} {tutor.lastname}
+                </option>
+              ))
+            ) : (
+              <option disabled>No tutors available</option>
+            )}
+          </select>
         </div>
 
         <div className="form-group">

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react"; // Import useCallback
+import { createContext, useContext, useState, useCallback } from "react"; 
 import axios from "axios";
 import toast from "react-hot-toast";
 import { LMS_Backend } from "../main";
@@ -9,7 +9,6 @@ export const EnrollContextProvider = ({ children }) => {
     const [enrolledCourses, setEnrolledCourses] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // Helper function to check token
     const checkToken = () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -41,7 +40,7 @@ export const EnrollContextProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, []); // Add dependencies if needed
+    }, []); 
 
     // Enroll in a course
     const enrollInCourse = async (courseId) => {
