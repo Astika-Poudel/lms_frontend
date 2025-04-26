@@ -21,6 +21,7 @@ export const CourseContextProvider = ({ children }) => {
   const [lecturesLoading, setLecturesLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [notes, setNotes] = useState([]); // Add state for notes
 
   const categories = [
     "All",
@@ -58,6 +59,103 @@ export const CourseContextProvider = ({ children }) => {
     return message;
   };
 
+  // Fetch notes for a course
+  const fetchNotes = async (courseId) => {
+    setLoading(true);
+    try {
+      if (!checkToken()) return [];
+      const { data } = await axios.get(`${LMS_Backend}/api/notes/${courseId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (data.success) {
+        setNotes(data.notes);
+        return data.notes;
+      } else {
+        toast.error(data.message || "Failed to fetch notes");
+        return [];
+      }
+    } catch (error) {
+      handleError(error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create a new note
+  const createNote = async (noteData) => {
+    setBtnLoading(true);
+    try {
+      if (!checkToken()) return;
+      const { data } = await axios.post(`${LMS_Backend}/api/notes`, noteData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (data.success) {
+        setNotes((prevNotes) => [...prevNotes, data.note]);
+        toast.success(data.message);
+        return true;
+      } else {
+        toast.error(data.message || "Failed to create note");
+        return false;
+      }
+    } catch (error) {
+      handleError(error);
+      return false;
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
+  // Update a note
+  const updateNote = async (noteId, noteData) => {
+    setBtnLoading(true);
+    try {
+      if (!checkToken()) return;
+      const { data } = await axios.put(`${LMS_Backend}/api/notes/${noteId}`, noteData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (data.success) {
+        setNotes((prevNotes) =>
+          prevNotes.map((note) => (note._id === noteId ? data.note : note))
+        );
+        toast.success(data.message);
+        return true;
+      } else {
+        toast.error(data.message || "Failed to update note");
+        return false;
+      }
+    } catch (error) {
+      handleError(error);
+      return false;
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
+  // Delete a note
+  const deleteNote = async (noteId) => {
+    setBtnLoading(true);
+    try {
+      if (!checkToken()) return;
+      const { data } = await axios.delete(`${LMS_Backend}/api/notes/${noteId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      if (data.success) {
+        setNotes((prevNotes) => prevNotes.filter((note) => note._id !== noteId));
+        toast.success(data.message);
+        return true;
+      } else {
+        toast.error(data.message || "Failed to delete note");
+        return false;
+      }
+    } catch (error) {
+      handleError(error);
+      return false;
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
   const fetchStudentDetails = async (studentId) => {
     try {
       if (!checkToken()) return null;
@@ -83,14 +181,14 @@ export const CourseContextProvider = ({ children }) => {
     setBtnLoading(true);
     try {
       if (!checkToken()) return;
-      const user = JSON.parse(localStorage.getItem("user")); // Get the authenticated user from localStorage
-      const studentId = user?._id; // Get the authenticated user's ID
+      const user = JSON.parse(localStorage.getItem("user"));
+      const studentId = user?._id;
       if (!studentId) {
         throw new Error("User ID not found");
       }
       const { data } = await axios.post(
         `${LMS_Backend}/api/tutor-ratings/submit-rating`,
-        { courseId, rating, feedback, studentId }, // Include studentId in the request
+        { courseId, rating, feedback, studentId },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       if (data.success) {
@@ -153,7 +251,6 @@ export const CourseContextProvider = ({ children }) => {
     try {
       const { data } = await axios.get(`${LMS_Backend}/api/course/all`, { timeout: 5000 });
       if (data && Array.isArray(data.courses)) {
-        // Ensure Tutor field is populated (handled on backend with .populate("Tutor"))
         setCourses(data.courses);
         setFilteredCourses(data.courses);
       }
@@ -485,6 +582,11 @@ export const CourseContextProvider = ({ children }) => {
         setSearchQuery,
         filterCoursesByQuery,
         filterCoursesByCategory,
+        notes,
+        fetchNotes,
+        createNote,
+        updateNote,
+        deleteNote,
       }}
     >
       {children}
