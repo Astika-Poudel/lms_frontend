@@ -12,7 +12,7 @@ import jsPDF from "jspdf";
 const CourseProgress = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { progress, loading, fetchStudentCourseProgress, markLectureWatched, submitTutorRating } = CourseData();
+  const { progress, loading, fetchStudentCourseProgress, markLectureWatched, submitTutorRating, notes, fetchNotes, createNote, updateNote, deleteNote } = CourseData();
   const { user } = UserData();
   const [error, setError] = useState(null);
   const [videoError, setVideoError] = useState(null);
@@ -30,17 +30,19 @@ const CourseProgress = () => {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteDescription, setNoteDescription] = useState("");
   const [notesFilter, setNotesFilter] = useState("section"); // "section" or "course"
-  const [notes, setNotes] = useState([]); // Store notes (client-side only)
   const [editingNote, setEditingNote] = useState(null); // Track note being edited
   const videoRef = useRef(null);
   const certificateRef = useRef(null);
 
   useEffect(() => {
-    const loadProgress = async () => {
-      const result = await fetchStudentCourseProgress(courseId);
-      if (!result) setError("Failed to load course progress");
+    const loadProgressAndNotes = async () => {
+      const progressResult = await fetchStudentCourseProgress(courseId);
+      if (!progressResult) setError("Failed to load course progress");
+
+      const notesResult = await fetchNotes(courseId);
+      if (!notesResult) setError("Failed to load notes");
     };
-    loadProgress();
+    loadProgressAndNotes();
   }, [courseId]);
 
   useEffect(() => {
@@ -112,7 +114,7 @@ const CourseProgress = () => {
     navigate(-1);
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!noteTitle || !noteDescription) {
       toast.error("Please fill in both title and description.");
       return;
@@ -127,28 +129,29 @@ const CourseProgress = () => {
       return;
     }
 
-    const newNote = {
-      id: editingNote ? editingNote.id : Date.now().toString(),
+    const noteData = {
       title: noteTitle,
       description: noteDescription,
-      lectureId: lectureId,
-      courseId: courseId,
-      date: new Date().toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "2-digit" }),
+      lectureId,
+      courseId,
     };
 
     if (editingNote) {
-      setNotes(notes.map(note => note.id === editingNote.id ? newNote : note));
-      toast.success("Note updated successfully!");
+      const success = await updateNote(editingNote._id, noteData);
+      if (success) {
+        setNoteTitle("");
+        setNoteDescription("");
+        setEditingNote(null);
+        setActiveNotesTab("my");
+      }
     } else {
-      setNotes([...notes, newNote]);
-      toast.success("Note saved successfully!");
+      const success = await createNote(noteData);
+      if (success) {
+        setNoteTitle("");
+        setNoteDescription("");
+        setActiveNotesTab("my");
+      }
     }
-
-    // Reset form
-    setNoteTitle("");
-    setNoteDescription("");
-    setEditingNote(null);
-    setActiveNotesTab("my");
   };
 
   const handleEditNote = (note) => {
@@ -158,9 +161,8 @@ const CourseProgress = () => {
     setActiveNotesTab("new");
   };
 
-  const handleDeleteNote = (noteId) => {
-    setNotes(notes.filter(note => note.id !== noteId));
-    toast.success("Note deleted successfully!");
+  const handleDeleteNote = async (noteId) => {
+    await deleteNote(noteId);
   };
 
   if (loading) return (
@@ -213,38 +215,38 @@ const CourseProgress = () => {
                           currentPhase === 2 ? course?.advancedLectures[currentLectureIndex]?._id : null;
 
   const filteredNotes = notesFilter === "section" ?
-    notes.filter(note => note.lectureId === currentLectureId) :
-    notes.filter(note => note.courseId === courseId);
+    notes.filter(note => note.lectureId.toString() === currentLectureId?.toString()) :
+    notes.filter(note => note.courseId.toString() === courseId);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm p-4 md:p-6">
-        <div className="max-w-7xl mx:kauto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleBack}
-                  className="flex items-center text-gray-600 hover:text-gray-800 transition duration-300"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                  <span className="text-base font-medium">Back</span>
-                </button>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{course?.title || "Course"}</h1>
-              </div>
+      <header className="bg-white shadow-sm p-4 md:p-6 relative">
+        <div className="max-w-7xl mx-auto flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <button
-                onClick={() => setShowNotesSidebar(true)}
-                className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base flex items-center gap-2"
+                onClick={handleBack}
+                className="flex items-center text-gray-600 hover:text-gray-800 transition duration-300"
               >
-                <Pencil className="w-5 h-5" />
-                Notes
+                <ChevronLeft className="w-6 h-6" />
+                <span className="text-base font-medium">Back</span>
               </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{course?.title || "Course"}</h1>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 relative overflow-hidden">
+            <button
+              onClick={() => setShowNotesSidebar(true)}
+              className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-lg flex items-center gap-2 absolute top-4 right-4 md:top-6 md:right-6"
+            >
+              <Pencil className="w-6 h-6" />
+              Notes
+            </button>
+          </div>
+          <div className="flex flex-col items-start gap-2">
+            <div className="w-full max-w-[calc(100%-150px)] bg-gray-200 rounded-full h-1.5 relative overflow-hidden">
               <div 
                 className="bg-gradient-to-r from-[#134e4a] to-[#0c3c38] h-1.5 rounded-full transition-all duration-500 ease-in-out" 
-                style={{ width: overallProgress + '%' }}
+                style={{ width: `${overallProgress}%` }}
               >
                 <div className="absolute inset-0 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
               </div>
@@ -397,10 +399,10 @@ const CourseProgress = () => {
                     <p className="text-gray-600">No notes available.</p>
                   ) : (
                     filteredNotes.map(note => (
-                      <div key={note.id} className="border-b py-2">
+                      <div key={note._id} className="border-b py-2">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="text-sm text-gray-500">{note.date}</p>
+                            <p className="text-sm text-gray-500">{new Date(note.createdAt).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "2-digit" })}</p>
                             <p className="font-medium">{note.title}</p>
                             <p className="text-gray-600">{note.description}</p>
                           </div>
@@ -408,7 +410,7 @@ const CourseProgress = () => {
                             <button onClick={() => handleEditNote(note)} className="text-blue-500">
                               <Pencil className="w-5 h-5" />
                             </button>
-                            <button onClick={() => handleDeleteNote(note.id)} className="text-red-500">
+                            <button onClick={() => handleDeleteNote(note._id)} className="text-red-500">
                               <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
