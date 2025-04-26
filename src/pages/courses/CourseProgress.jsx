@@ -5,7 +5,7 @@ import { UserData } from "../../context/UserContext";
 import { LMS_Backend } from "../../main";
 import toast from "react-hot-toast";
 import Confetti from "react-confetti";
-import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X, MessageSquare } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -34,7 +34,7 @@ const CourseProgress = () => {
       if (!result) setError("Failed to load course progress");
     };
     loadProgress();
-  }, [courseId]);
+  }, [courseId, fetchStudentCourseProgress]);
 
   useEffect(() => {
     if (currentPhase > 0 && currentPhase <= 4) {
@@ -102,7 +102,7 @@ const CourseProgress = () => {
   };
 
   const handleBack = () => {
-    navigate(-1); // Navigate to the previous page
+    navigate(-1);
   };
 
   if (loading) return (
@@ -134,6 +134,7 @@ const CourseProgress = () => {
     },
     { name: "Advanced Quiz", enabled: completedAdvancedLectures, icon: <CheckCircle className="w-5 h-5" /> },
     { name: "Certification", enabled: certificateAwarded, icon: <Award className="w-5 h-5" /> },
+    { name: "Course Forum", enabled: true, icon: <MessageSquare className="w-5 h-5" /> },
   ];
 
   const totalSteps = (course?.beginnerLectures?.length || 0) + 1 + 
@@ -201,8 +202,11 @@ const CourseProgress = () => {
                         setCurrentPhase(index);
                         setCurrentLectureIndex(0);
                         setWatchProgress(0);
+                        if (phase.name === "Course Forum") {
+                          navigate(`/student/course/forum/${courseId}`);
+                        }
                       }
-                      togglePhase(index);
+                      if (phase.lectures) togglePhase(index);
                     }}
                   >
                     {phase.icon}
@@ -242,7 +246,14 @@ const CourseProgress = () => {
 
         {/* Content Area */}
         <section className={`${showSidebar ? "w-full md:w-2/3" : "w-full"} bg-white rounded-lg shadow-sm p-4 md:p-6 relative`}>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 gap-4">
+            <button
+              onClick={() => navigate(`/student/course/forum/${courseId}`)}
+              className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base flex items-center gap-2"
+            >
+              <MessageSquare className="w-5 h-5" />
+              Course Forum
+            </button>
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base"
@@ -399,7 +410,6 @@ const CourseProgress = () => {
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Certification Earned!</h2>
               <p className="text-lg text-green-600 mb-6">🎉 Congratulations on completing the course!</p>
 
-              {/* Certificate */}
               <div ref={certificateRef} className="bg-white border-2 border-gray-300 rounded-lg p-8 mx-auto max-w-4xl shadow-lg relative">
                 <div className="flex justify-between items-start mb-6">
                   <div className="text-left">
@@ -440,7 +450,6 @@ const CourseProgress = () => {
                 Download Certificate
               </button>
 
-              {/* Rating Modal */}
               {showRatingModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                   <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
