@@ -32,6 +32,8 @@ import TutorCreateQuiz from "./pages/Tutor/TutorCreateQuiz";
 import CourseProgress from "./pages/courses/CourseProgress";
 import QuizPage from "./pages/courses/QuizPage";
 import TutorQuizzes from "./pages/Tutor/TutorQuizzes";
+import Success from "./pages/courses/Success";
+import Failure from "./pages/courses/Failure";
 
 const App = () => {
     const { isAuth, loading, user } = UserData();
@@ -247,6 +249,22 @@ const App = () => {
                             element={
                                 <ProtectedRoute role="student">
                                     <PaymentPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                         <Route
+                            path="/payment-success"
+                            element={
+                                <ProtectedRoute role="student">
+                                    <Success />
+                                </ProtectedRoute>
+                            }
+                        />
+                         <Route
+                            path="/payment-failure"
+                            element={
+                                <ProtectedRoute role="student">
+                                    <Failure />
                                 </ProtectedRoute>
                             }
                         />

@@ -233,13 +233,22 @@ const CourseProgress = () => {
               </button>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">{course?.title || "Course"}</h1>
             </div>
-            <button
-              onClick={() => setShowNotesSidebar(true)}
-              className="text-[#134e4a] hover:text-[#0c3c38] font-semibold text-lg flex items-center gap-2 absolute top-4 right-8 md:top-6 md:right-10"
-            >
-              <Pencil className="w-6 h-6" />
-              Notes
-            </button>
+            <div className="flex items-center gap-4 absolute top-4 right-8 md:top-6 md:right-10">
+              <button
+                onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
+              >
+                <MessagesSquare className="w-4 h-4" />
+                Join Course Discussion
+              </button>
+              <button
+                onClick={() => setShowNotesSidebar(true)}
+                className="text-[#134e4a] hover:text-[#0c3c38] font-semibold text-lg flex items-center gap-2"
+              >
+                <Pencil className="w-6 h-6" />
+                Notes
+              </button>
+            </div>
           </div>
           <div className="flex flex-col items-start gap-2">
             <div className="w-full max-w-[400px] bg-gray-200 rounded-full h-2 relative overflow-hidden">
@@ -447,16 +456,6 @@ const CourseProgress = () => {
                       </button>
                     </div>
                   </div>
-                  {/* Forum Button */}
-                  <div className="flex justify-end mb-4">
-                    <button
-                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                    >
-                      <MessagesSquare className="w-4 h-4" />
-                      Join Course Discussion
-                    </button>
-                  </div>
                   {videoError?.lectureId === course.beginnerLectures[currentLectureIndex]._id ? (
                     <p className="text-red-500 text-sm">Error: {videoError.message}</p>
                   ) : (
@@ -484,16 +483,6 @@ const CourseProgress = () => {
                 </div>
               ) : (
                 <div>
-                  {/* Forum Button */}
-                  <div className="flex justify-end mb-4">
-                    <button
-                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                    >
-                      <MessagesSquare className="w-4 h-4" />
-                      Join Course Discussion
-                    </button>
-                  </div>
                   <p className="text-gray-600 text-sm">No lectures available</p>
                 </div>
               )}
@@ -502,16 +491,6 @@ const CourseProgress = () => {
 
           {currentPhase === 1 && (
             <div>
-              {/* Forum Button */}
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                >
-                  <MessagesSquare className="w-4 h-4" />
-                  Join Course Discussion
-                </button>
-              </div>
               <div className="text-center">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">Beginner Quiz</h2>
                 {beginnerQuizScore !== null ? (
@@ -555,16 +534,6 @@ const CourseProgress = () => {
                       </button>
                     </div>
                   </div>
-                  {/* Forum Button */}
-                  <div className="flex justify-end mb-4">
-                    <button
-                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                    >
-                      <MessagesSquare className="w-4 h-4" />
-                      Join Course Discussion
-                    </button>
-                  </div>
                   {videoError?.lectureId === course.advancedLectures[currentLectureIndex]._id ? (
                     <p className="text-red-500 text-sm">Error: {videoError.message}</p>
                   ) : (
@@ -592,16 +561,6 @@ const CourseProgress = () => {
                 </div>
               ) : (
                 <div>
-                  {/* Forum Button */}
-                  <div className="flex justify-end mb-4">
-                    <button
-                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                    >
-                      <MessagesSquare className="w-4 h-4" />
-                      Join Course Discussion
-                    </button>
-                  </div>
                   <p className="text-gray-600 text-sm">No lectures available</p>
                 </div>
               )}
@@ -610,16 +569,6 @@ const CourseProgress = () => {
 
           {currentPhase === 3 && (
             <div>
-              {/* Forum Button */}
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                >
-                  <MessagesSquare className="w-4 h-4" />
-                  Join Course Discussion
-                </button>
-              </div>
               <div className="text-center">
                 <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">Advanced Quiz</h2>
                 {advancedQuizScore !== null ? (
@@ -641,16 +590,6 @@ const CourseProgress = () => {
           {currentPhase === 4 && (
             <div>
               <div className="text-center relative">
-                {/* Forum Button */}
-                <div className="flex justify-end mb-4">
-                  <button
-                    onClick={() => navigate(`/student/course/forum/${courseId}`)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium bg-[#134e4a] hover:bg-[#0c3c38] transition-all duration-300"
-                  >
-                    <MessagesSquare className="w-4 h-4" />
-                    Join Course Discussion
-                  </button>
-                </div>
                 <Confetti width={window.innerWidth} height={window.innerHeight} />
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Certification Earned!</h2>
                 <p className="text-base text-green-600 mb-6">🎉 Congratulations on completing the course!</p>
