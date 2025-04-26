@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CourseData } from "../../context/CourseContext";
 import { UserData } from "../../context/UserContext";
@@ -27,14 +27,50 @@ const CourseProgress = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const videoRef = useRef(null);
   const certificateRef = useRef(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
+
+  // Debounce the API call to prevent rapid repeated requests
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      return new Promise((resolve) => {
+        timeoutId = setTimeout(async () => {
+          const result = await func(...args);
+          resolve(result);
+        }, delay);
+      });
+    };
+  };
+
+  // Memoized function to load progress with retry logic
+  const loadProgress = useCallback(
+    debounce(async () => {
+      try {
+        setError(null);
+        const result = await fetchStudentCourseProgress(courseId);
+        if (!result) {
+          throw new Error("Failed to load course progress");
+        }
+        setRetryCount(0); // Reset retry count on success
+      } catch (err) {
+        if (retryCount < maxRetries) {
+          setRetryCount((prev) => prev + 1);
+          toast.error(`Retrying... (${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => loadProgress(), 2000); // Retry after 2 seconds
+        } else {
+          setError("Failed to load course progress after multiple attempts. Please check your network and try again.");
+          toast.error("Network error. Please try again later.");
+        }
+      }
+    }, 1000),
+    [courseId, fetchStudentCourseProgress, retryCount]
+  );
 
   useEffect(() => {
-    const loadProgress = async () => {
-      const result = await fetchStudentCourseProgress(courseId);
-      if (!result) setError("Failed to load course progress");
-    };
     loadProgress();
-  }, [courseId, fetchStudentCourseProgress]);
+  }, [courseId, loadProgress]);
 
   useEffect(() => {
     if (currentPhase > 0 && currentPhase <= 4) {
@@ -105,12 +141,25 @@ const CourseProgress = () => {
     navigate(-1);
   };
 
-  if (loading) return (
+  if (loading && !error) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#134e4a]"></div>
     </div>
   );
-  if (error) return <div className="text-red-500 text-center py-10">{error}</div>;
+  if (error) return (
+    <div className="text-center py-10">
+      <p className="text-red-500 mb-4">{error}</p>
+      <button
+        onClick={() => {
+          setRetryCount(0);
+          loadProgress();
+        }}
+        className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38]"
+      >
+        Retry
+      </button>
+    </div>
+  );
   if (!progress) return <div className="text-center py-10 text-gray-600">No progress found</div>;
 
   const { course, watchedBeginnerLectures, completedBeginnerLectures, beginnerQuizScore, 
