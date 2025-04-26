@@ -5,7 +5,7 @@ import { UserData } from "../../context/UserContext";
 import { LMS_Backend } from "../../main";
 import toast from "react-hot-toast";
 import Confetti from "react-confetti";
-import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X, MessagesSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X, MessagesSquare, Pencil, Trash2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -25,6 +25,13 @@ const CourseProgress = () => {
   const [feedback, setFeedback] = useState("");
   const [hasRated, setHasRated] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showNotesSidebar, setShowNotesSidebar] = useState(false);
+  const [activeNotesTab, setActiveNotesTab] = useState("new"); // "new" or "my"
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteDescription, setNoteDescription] = useState("");
+  const [notesFilter, setNotesFilter] = useState("section"); // "section" or "course"
+  const [notes, setNotes] = useState([]); // Store notes (client-side only)
+  const [editingNote, setEditingNote] = useState(null); // Track note being edited
   const videoRef = useRef(null);
   const certificateRef = useRef(null);
 
@@ -105,6 +112,57 @@ const CourseProgress = () => {
     navigate(-1);
   };
 
+  const handleSaveNote = () => {
+    if (!noteTitle || !noteDescription) {
+      toast.error("Please fill in both title and description.");
+      return;
+    }
+
+    const lectureId = currentPhase === 0 || currentPhase === 2 ? 
+      (currentPhase === 0 ? course?.beginnerLectures[currentLectureIndex]?._id : course?.advancedLectures[currentLectureIndex]?._id) : 
+      null;
+
+    if (!lectureId) {
+      toast.error("Notes can only be created for lectures.");
+      return;
+    }
+
+    const newNote = {
+      id: editingNote ? editingNote.id : Date.now().toString(),
+      title: noteTitle,
+      description: noteDescription,
+      lectureId: lectureId,
+      courseId: courseId,
+      date: new Date().toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "2-digit" }),
+    };
+
+    if (editingNote) {
+      setNotes(notes.map(note => note.id === editingNote.id ? newNote : note));
+      toast.success("Note updated successfully!");
+    } else {
+      setNotes([...notes, newNote]);
+      toast.success("Note saved successfully!");
+    }
+
+    // Reset form
+    setNoteTitle("");
+    setNoteDescription("");
+    setEditingNote(null);
+    setActiveNotesTab("my");
+  };
+
+  const handleEditNote = (note) => {
+    setNoteTitle(note.title);
+    setNoteDescription(note.description);
+    setEditingNote(note);
+    setActiveNotesTab("new");
+  };
+
+  const handleDeleteNote = (noteId) => {
+    setNotes(notes.filter(note => note.id !== noteId));
+    toast.success("Note deleted successfully!");
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#134e4a]"></div>
@@ -151,36 +209,52 @@ const CourseProgress = () => {
     day: "numeric",
   });
 
+  const currentLectureId = currentPhase === 0 ? course?.beginnerLectures[currentLectureIndex]?._id :
+                          currentPhase === 2 ? course?.advancedLectures[currentLectureIndex]?._id : null;
+
+  const filteredNotes = notesFilter === "section" ?
+    notes.filter(note => note.lectureId === currentLectureId) :
+    notes.filter(note => note.courseId === courseId);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm p-4 md:p-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="flex items-center text-gray-600 hover:text-gray-800 transition duration-300"
-            >
-              <ChevronLeft className="w-6 h-6" />
-              <span className="text-base font-medium">Back</span>
-            </button>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{course?.title || "Course"}</h1>
-          </div>
-          <div className="w-full md:w-60 flex flex-col items-center">
+        <div className="max-w-7xl mx:kauto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleBack}
+                  className="flex items-center text-gray-600 hover:text-gray-800 transition duration-300"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                  <span className="text-base font-medium">Back</span>
+                </button>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{course?.title || "Course"}</h1>
+              </div>
+              <button
+                onClick={() => setShowNotesSidebar(true)}
+                className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base flex items-center gap-2"
+              >
+                <Pencil className="w-5 h-5" />
+                Notes
+              </button>
+            </div>
             <div className="w-full bg-gray-200 rounded-full h-1.5 relative overflow-hidden">
               <div 
                 className="bg-gradient-to-r from-[#134e4a] to-[#0c3c38] h-1.5 rounded-full transition-all duration-500 ease-in-out" 
-                style={{ width: `${overallProgress}%` }}
+                style={{ width: overallProgress + '%' }}
               >
                 <div className="absolute inset-0 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
               </div>
             </div>
-            <p className="text-xs text-gray-600 mt-1 font-medium">{overallProgress.toFixed(0)}% Complete</p>
+            <p className="text-xs text-gray-600 font-medium">{overallProgress.toFixed(0)}% Complete</p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 px-4 flex flex-col md:flex-row gap-6">
+      <main className="max-w-7xl mx-auto py-6 px-4 flex flex-col md:flex-row gap-6 relative">
         {/* Sidebar */}
         {showSidebar && (
           <aside className="w-full md:w-1/3 bg-white rounded-lg shadow-sm p-4">
@@ -218,7 +292,7 @@ const CourseProgress = () => {
                           className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
                             currentPhase === index && currentLectureIndex === lectureIndex
                               ? "bg-[#134e4a]/10 text-[#134e4a] font-semibold"
-                              : phase.watched.includes(lecture._id)
+                              : phase.watched.some(w => w.lecture.toString() === lecture._id)
                                 ? "text-gray-600"
                                 : "text-gray-500"
                           }`}
@@ -229,7 +303,7 @@ const CourseProgress = () => {
                           }}
                         >
                           <span>{lectureIndex + 1}. {lecture.title || "Untitled"}</span>
-                          {phase.watched.includes(lecture._id) && <CheckCircle className="w-4 h-4 text-green-500" />}
+                          {phase.watched.some(w => w.lecture.toString() === lecture._id) && <CheckCircle className="w-4 h-4 text-green-500" />}
                         </div>
                       ))}
                     </div>
@@ -250,6 +324,102 @@ const CourseProgress = () => {
               {showSidebar ? "Hide Sidebar" : "Show Sidebar"}
             </button>
           </div>
+
+          {/* Notes Sidebar */}
+          {showNotesSidebar && (
+            <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-lg z-50 p-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setActiveNotesTab("new")}
+                    className={`text-lg font-medium ${activeNotesTab === "new" ? "text-[#134e4a] border-b-2 border-[#134e4a]" : "text-gray-600"}`}
+                  >
+                    New note
+                  </button>
+                  <button
+                    onClick={() => setActiveNotesTab("my")}
+                    className={`text-lg font-medium ${activeNotesTab === "my" ? "text-[#134e4a] border-b-2 border-[#134e4a]" : "text-gray-600"}`}
+                  >
+                    My notes
+                  </button>
+                </div>
+                <button onClick={() => setShowNotesSidebar(false)} className="text-gray-600 hover:text-gray-800">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {activeNotesTab === "new" ? (
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Title *</label>
+                    <input
+                      type="text"
+                      value={noteTitle}
+                      onChange={(e) => setNoteTitle(e.target.value)}
+                      className="w-full border rounded p-2 mt-1"
+                      placeholder="Enter note title"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Description *</label>
+                    <textarea
+                      value={noteDescription}
+                      onChange={(e) => setNoteDescription(e.target.value)}
+                      className="w-full border rounded p-2 mt-1"
+                      rows="5"
+                      placeholder="Enter note description"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSaveNote}
+                    className="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setNotesFilter("section")}
+                      className={`px-3 py-1 rounded ${notesFilter === "section" ? "bg-[#134e4a] text-white" : "bg-gray-200 text-gray-600"}`}
+                    >
+                      This section
+                    </button>
+                    <button
+                      onClick={() => setNotesFilter("course")}
+                      className={`px-3 py-1 rounded ${notesFilter === "course" ? "bg-[#134e4a] text-white" : "bg-gray-200 text-gray-600"}`}
+                    >
+                      Course
+                    </button>
+                  </div>
+                  {filteredNotes.length === 0 ? (
+                    <p className="text-gray-600">No notes available.</p>
+                  ) : (
+                    filteredNotes.map(note => (
+                      <div key={note.id} className="border-b py-2">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm text-gray-500">{note.date}</p>
+                            <p className="font-medium">{note.title}</p>
+                            <p className="text-gray-600">{note.description}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditNote(note)} className="text-blue-500">
+                              <Pencil className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => handleDeleteNote(note.id)} className="text-red-500">
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {currentPhase === 0 && (
             <div>
@@ -522,6 +692,48 @@ const CourseProgress = () => {
           )}
         </section>
       </main>
+
+      {/* Rating Modal */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">Rate this Course</h2>
+              <button onClick={() => setShowRatingModal(false)} className="text-gray-600 hover:text-gray-800">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Your Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-8 h-8 cursor-pointer ${rating >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                    onClick={() => setRating(star)}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Feedback (Optional)</label>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                className="w-full border rounded p-2 mt-1"
+                rows="4"
+                placeholder="Share your thoughts about the course..."
+              />
+            </div>
+            <button
+              onClick={handleRating}
+              className="w-full bg-[#134e4a] text-white px-4 py-2 rounded hover:bg-[#0c3c38]"
+            >
+              Submit Rating
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
