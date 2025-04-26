@@ -5,7 +5,7 @@ import { UserData } from "../../context/UserContext";
 import { LMS_Backend } from "../../main";
 import toast from "react-hot-toast";
 import Confetti from "react-confetti";
-import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, Award, Lock, ChevronDown, ChevronUp, Star, X, MessagesSquare } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -134,7 +134,6 @@ const CourseProgress = () => {
     },
     { name: "Advanced Quiz", enabled: completedAdvancedLectures, icon: <CheckCircle className="w-5 h-5" /> },
     { name: "Certification", enabled: certificateAwarded, icon: <Award className="w-5 h-5" /> },
-    { name: "Course Forum", enabled: true, icon: <MessageSquare className="w-5 h-5" /> },
   ];
 
   const totalSteps = (course?.beginnerLectures?.length || 0) + 1 + 
@@ -202,9 +201,6 @@ const CourseProgress = () => {
                         setCurrentPhase(index);
                         setCurrentLectureIndex(0);
                         setWatchProgress(0);
-                        if (phase.name === "Course Forum") {
-                          navigate(`/student/course/forum/${courseId}`);
-                        }
                       }
                       if (phase.lectures) togglePhase(index);
                     }}
@@ -246,14 +242,7 @@ const CourseProgress = () => {
 
         {/* Content Area */}
         <section className={`${showSidebar ? "w-full md:w-2/3" : "w-full"} bg-white rounded-lg shadow-sm p-4 md:p-6 relative`}>
-          <div className="flex justify-end mb-4 gap-4">
-            <button
-              onClick={() => navigate(`/student/course/forum/${courseId}`)}
-              className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base flex items-center gap-2"
-            >
-              <MessageSquare className="w-5 h-5" />
-              Course Forum
-            </button>
+          <div className="flex justify-end mb-4">
             <button
               onClick={() => setShowSidebar(!showSidebar)}
               className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base"
@@ -287,6 +276,16 @@ const CourseProgress = () => {
                       </button>
                     </div>
                   </div>
+                  {/* Forum Button */}
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
+                    >
+                      <MessagesSquare className="w-5 h-5 animate-pulse" />
+                      Join Course Discussion
+                    </button>
+                  </div>
                   {videoError?.lectureId === course.beginnerLectures[currentLectureIndex]._id ? (
                     <p className="text-red-500">Error: {videoError.message}</p>
                   ) : (
@@ -310,26 +309,50 @@ const CourseProgress = () => {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-600">No lectures available</p>
+                <div>
+                  {/* Forum Button */}
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
+                    >
+                      <MessagesSquare className="w-5 h-5 animate-pulse" />
+                      Join Course Discussion
+                    </button>
+                  </div>
+                  <p className="text-gray-600">No lectures available</p>
+                </div>
               )}
             </div>
           )}
 
           {currentPhase === 1 && (
-            <div className="text-center">
-              <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Beginner Quiz</h2>
-              {beginnerQuizScore !== null ? (
-                <p className="text-lg text-gray-600">
-                  Score: {beginnerQuizScore}% - {beginnerQuizScore >= course.passingScore ? "Passed 🎉" : "Failed"}
-                </p>
-              ) : (
-                <button 
-                  onClick={() => navigate(`/student/quiz/${course.beginnerQuiz?._id}`)}
-                  className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
+            <div>
+              {/* Forum Button */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
                 >
-                  Start Quiz
+                  <MessagesSquare className="w-5 h-5 animate-pulse" />
+                  Join Course Discussion
                 </button>
-              )}
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Beginner Quiz</h2>
+                {beginnerQuizScore !== null ? (
+                  <p className="text-lg text-gray-600">
+                    Score: {beginnerQuizScore}% - {beginnerQuizScore >= course.passingScore ? "Passed 🎉" : "Failed"}
+                  </p>
+                ) : (
+                  <button 
+                    onClick={() => navigate(`/student/quiz/${course.beginnerQuiz?._id}`)}
+                    className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
+                  >
+                    Start Quiz
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -358,6 +381,16 @@ const CourseProgress = () => {
                       </button>
                     </div>
                   </div>
+                  {/* Forum Button */}
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
+                    >
+                      <MessagesSquare className="w-5 h-5 animate-pulse" />
+                      Join Course Discussion
+                    </button>
+                  </div>
                   {videoError?.lectureId === course.advancedLectures[currentLectureIndex]._id ? (
                     <p className="text-red-500">Error: {videoError.message}</p>
                   ) : (
@@ -381,118 +414,110 @@ const CourseProgress = () => {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-600">No lectures available</p>
+                <div>
+                  {/* Forum Button */}
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
+                    >
+                      <MessagesSquare className="w-5 h-5 animate-pulse" />
+                      Join Course Discussion
+                    </button>
+                  </div>
+                  <p className="text-gray-600">No lectures available</p>
+                </div>
               )}
             </div>
           )}
 
           {currentPhase === 3 && (
-            <div className="text-center">
-              <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Advanced Quiz</h2>
-              {advancedQuizScore !== null ? (
-                <p className="text-lg text-gray-600">
-                  Score: {advancedQuizScore}% - {advancedQuizScore >= course.passingScore ? "Passed 🎉" : "Failed"}
-                </p>
-              ) : (
-                <button 
-                  onClick={() => navigate(`/student/quiz/${course.advancedQuiz?._id}`)}
-                  className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
+            <div>
+              {/* Forum Button */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
                 >
-                  Start Quiz
+                  <MessagesSquare className="w-5 h-5 animate-pulse" />
+                  Join Course Discussion
                 </button>
-              )}
+              </div>
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-4">Advanced Quiz</h2>
+                {advancedQuizScore !== null ? (
+                  <p className="text-lg text-gray-600">
+                    Score: {advancedQuizScore}% - {advancedQuizScore >= course.passingScore ? "Passed 🎉" : "Failed"}
+                  </p>
+                ) : (
+                  <button 
+                    onClick={() => navigate(`/student/quiz/${course.advancedQuiz?._id}`)}
+                    className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
+                  >
+                    Start Quiz
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
           {currentPhase === 4 && (
-            <div className="text-center relative">
-              <Confetti width={window.innerWidth} height={window.innerHeight} />
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Certification Earned!</h2>
-              <p className="text-lg text-green-600 mb-6">🎉 Congratulations on completing the course!</p>
+            <div>
+              <div className="text-center relative">
+                {/* Forum Button */}
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={() => navigate(`/student/course/forum/${courseId}`)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-[#134e4a] to-[#0c3c38] shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 w-fit ml-auto"
+                  >
+                    <MessagesSquare className="w-5 h-5 animate-pulse" />
+                    Join Course Discussion
+                  </button>
+                </div>
+                <Confetti width={window.innerWidth} height={window.innerHeight} />
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Certification Earned!</h2>
+                <p className="text-lg text-green-600 mb-6">🎉 Congratulations on completing the course!</p>
 
-              <div ref={certificateRef} className="bg-white border-2 border-gray-300 rounded-lg p-8 mx-auto max-w-4xl shadow-lg relative">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="text-left">
-                    <h1 className="text-2xl font-semibold text-gray-800">LearnNepal</h1>
+                <div ref={certificateRef} className="bg-white border-2 border-gray-300 rounded-lg p-8 mx-auto max-w-4xl shadow-lg relative">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="text-left">
+                      <h1 className="text-2xl font-semibold text-gray-800">LearnNepal</h1>
+                    </div>
+                    <div className="text-right">
+                      <Award className="w-12 h-12 text-yellow-400" />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <Award className="w-12 h-12 text-yellow-400" />
+                  <h1 className="text-5xl font-bold text-gray-800 mb-6">Certificate of Completion</h1>
+                  <p className="text-lg text-gray-600 mb-4">This certificate is proudly presented to</p>
+                  <p className="text-4xl font-semibold text-gray-800 mb-6" style={{ fontFamily: "'Dancing Script', cursive" }}>
+                    {user?.firstname || "Student"} {user?.lastname || "Name"}
+                  </p>
+                  <p className="text-lg text-gray-600 mb-8">
+                    for successfully completing the <span className="font-semibold">{course?.title || "Course Name"}</span> from LearnNepal on {currentDate}.
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <div className="text-center">
+                      <p className="text-gray-600 mb-2" style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.5rem" }}>
+                        Signature
+                      </p>
+                      <p className="text-sm text-gray-600">LearnNepal</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-gray-600 mb-2" style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.5rem" }}>
+                        Signature
+                      </p>
+                      <p className="text-sm text-gray-600">Tutor</p>
+                    </div>
                   </div>
                 </div>
-                <h1 className="text-5xl font-bold text-gray-800 mb-6">Certificate of Completion</h1>
-                <p className="text-lg text-gray-600 mb-4">This certificate is proudly presented to</p>
-                <p className="text-4xl font-semibold text-gray-800 mb-6" style={{ fontFamily: "'Dancing Script', cursive" }}>
-                  {user?.firstname || "Student"} {user?.lastname || "Name"}
-                </p>
-                <p className="text-lg text-gray-600 mb-8">
-                  for successfully completing the <span className="font-semibold">{course?.title || "Course Name"}</span> from LearnNepal on {currentDate}.
-                </p>
-                <div className="flex justify-between items-center">
-                  <div className="text-center">
-                    <p className="text-gray-600 mb-2" style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.5rem" }}>
-                      Signature
-                    </p>
-                    <p className="text-sm text-gray-600">LearnNepal</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-gray-600 mb-2" style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.5rem" }}>
-                      Signature
-                    </p>
-                    <p className="text-sm text-gray-600">Tutor</p>
-                  </div>
-                </div>
+
+                <button
+                  onClick={downloadCertificate}
+                  className="mt-6 bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
+                >
+                  Download Certificate
+                </button>
               </div>
-
-              <button
-                onClick={downloadCertificate}
-                className="mt-6 bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
-              >
-                Download Certificate
-              </button>
-
-              {showRatingModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
-                    <button
-                      onClick={() => setShowRatingModal(false)}
-                      className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">Rate Your Tutor</h3>
-                    {hasRated ? (
-                      <p className="text-gray-600">Thank you for your feedback!</p>
-                    ) : (
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="flex gap-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-8 h-8 cursor-pointer transition-colors ${
-                                star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                              }`}
-                              onClick={() => setRating(star)}
-                            />
-                          ))}
-                        </div>
-                        <textarea
-                          value={feedback}
-                          onChange={(e) => setFeedback(e.target.value)}
-                          placeholder="Please provide your feedback (optional)"
-                          className="w-full p-2 border rounded-lg resize-none"
-                          rows="4"
-                        />
-                        <button
-                          onClick={handleRating}
-                          className="bg-[#134e4a] text-white px-6 py-2 rounded-lg hover:bg-[#0c3c38] transition-colors"
-                        >
-                          Submit Rating & Feedback
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </section>
