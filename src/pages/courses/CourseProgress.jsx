@@ -227,30 +227,31 @@ const CourseProgress = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleBack}
-                className="flex items-center text-blue-600 hover:text-blue-800 transition duration-300"
+                className="flex items-center text-black hover:text-gray-700 transition duration-300"
               >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="text-sm font-medium">Back</span>
+                <ChevronLeft className="w-8 h-8 text-black" />
               </button>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">{course?.title || "Course"}</h1>
             </div>
             <button
               onClick={() => setShowNotesSidebar(true)}
-              className="text-[#134e4a] hover:text-[#0c3c38] font-medium text-base flex items-center gap-2 absolute top-4 right-4 md:top-6 md:right-6"
+              className="text-[#134e4a] hover:text-[#0c3c38] font-semibold text-lg flex items-center gap-2 absolute top-4 right-8 md:top-6 md:right-10"
             >
-              <Pencil className="w-5 h-5" />
+              <Pencil className="w-6 h-6" />
               Notes
             </button>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 relative overflow-hidden">
-            <div 
-              className="bg-[#134e4a] h-2 rounded-full transition-all duration-500 ease-in-out" 
-              style={{ width: `${overallProgress}%` }}
-            >
-              <div className="absolute inset-0 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+          <div className="flex flex-col items-start gap-2">
+            <div className="w-full max-w-[400px] bg-gray-200 rounded-full h-2 relative overflow-hidden">
+              <div 
+                className="bg-[#134e4a] h-2 rounded-full transition-all duration-500 ease-in-out" 
+                style={{ width: `${overallProgress}%` }}
+              >
+                <div className="absolute inset-0 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+              </div>
             </div>
+            <p className="text-xs text-gray-600 font-medium">{overallProgress.toFixed(0)}% Complete</p>
           </div>
-          <p className="text-xs text-gray-600 font-medium">{overallProgress.toFixed(0)}% Complete</p>
         </div>
       </header>
 
