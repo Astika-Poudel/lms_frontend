@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { EnrollData } from "../../context/enrollContext";
@@ -10,49 +10,26 @@ const Success = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const hasVerified = useRef(false); // Prevent multiple verifications
 
   useEffect(() => {
     const verifyPayment = async () => {
+      if (hasVerified.current) {
+        console.log("Payment verification already attempted, skipping...");
+        return;
+      }
+
+      hasVerified.current = true;
       try {
-        // Log all query parameters to see what eSewa is sending
         const allParams = {};
         for (const [key, value] of searchParams.entries()) {
           allParams[key] = value;
         }
         console.log("All Search Params:", allParams);
 
-        // Check for the 'data' parameter
         const dataParam = searchParams.get("data");
         if (!dataParam) {
-          setError("Invalid payment details. Missing 'data' parameter.");
-          setLoading(false);
-          return;
-        }
-
-        // Decode the Base64-encoded 'data' parameter
-        let decodedData;
-        try {
-          decodedData = JSON.parse(atob(dataParam));
-        } catch (decodeError) {
-          console.error("Error decoding data parameter:", decodeError);
-          setError("Failed to decode payment details.");
-          setLoading(false);
-          return;
-        }
-
-        console.log("Decoded Data:", decodedData);
-
-        // Extract transaction details from decoded data
-        // Adjust these keys based on eSewa's actual response (common keys: transaction_code, amount, refId)
-        const transaction_uuid = decodedData.transaction_uuid || decodedData.transaction_code || decodedData.oid;
-        const amount = decodedData.total_amount || decodedData.amount || decodedData.amt;
-        const refId = decodedData.refId || decodedData.refid || decodedData.referenceId;
-
-        console.log("Extracted Params:", { transaction_uuid, amount, refId });
-
-        // Check if extracted parameters are present
-        if (!transaction_uuid || !amount || !refId) {
-          setError("Invalid payment details. Missing required transaction details.");
+          setError("Missing payment data from eSewa.");
           setLoading(false);
           return;
         }
@@ -63,26 +40,37 @@ const Success = () => {
         if (!token) {
           setError("Authentication token missing. Please log in again.");
           setLoading(false);
+          navigate("/login");
           return;
         }
 
-        // Send verification request to backend
         const { data } = await axios.get("http://localhost:7001/api/payment/verify-esewa", {
-          params: { transaction_uuid, amount, refId },
+          params: { data: dataParam },
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (data.success) {
-          // Enroll the user in the course
-          await enrollInCourse(data.courseId);
+          const courseId = data.courseId;
+          console.log("Course ID from verify-esewa:", courseId);
+
+          if (!courseId || typeof courseId !== "string" || !courseId.match(/^[0-9a-fA-F]{24}$/)) {
+            setError("Invalid course ID received from payment verification.");
+            setTimeout(() => navigate("/payment-failure"), 2000);
+            return;
+          }
+
+          console.log("Calling enrollInCourse from Success for course:", courseId);
+          await enrollInCourse(courseId);
           setSuccess(true);
           setTimeout(() => navigate("/student/courses"), 3000);
         } else {
           setError("Payment verification failed.");
+          setTimeout(() => navigate("/payment-failure"), 2000);
         }
       } catch (error) {
         console.error("Error verifying payment:", error.response?.data || error.message);
         setError(error.response?.data?.error || "Payment verification failed. Please try again.");
+        setTimeout(() => navigate("/payment-failure"), 2000);
       } finally {
         setLoading(false);
       }
