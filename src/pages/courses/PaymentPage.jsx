@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import axios from "axios";
-import { FaRegCreditCard, FaCalendarAlt, FaLock, FaUser, FaClock, FaTag, FaArrowLeft } from "react-icons/fa";
+import {
+  FaRegCreditCard,
+  FaCalendarAlt,
+  FaLock,
+  FaUser,
+  FaClock,
+  FaTag,
+  FaArrowLeft,
+} from "react-icons/fa";
 import { CourseData } from "../../context/CourseContext";
 import { EnrollData } from "../../context/enrollContext";
 
-const stripePromise = loadStripe("pk_test_51QlN4iG11lLG2hVXLdZhuzJw24mf5grQNHAr4026e3rQV66czR2UCRJQgBrhbkFnRkE5elHkiNiMLdBCfFxLaQyU00w3pHsstP");
+const stripePromise = loadStripe(
+  "pk_test_51QlN4iG11lLG2hVXLdZhuzJw24mf5grQNHAr4026e3rQV66czR2UCRJQgBrhbkFnRkE5elHkiNiMLdBCfFxLaQyU00w3pHsstP"
+);
 
 const PaymentForm = ({ amount, courseId, courseTitle }) => {
   const stripe = useStripe();
@@ -20,15 +37,15 @@ const PaymentForm = ({ amount, courseId, courseTitle }) => {
 
   const handlePayment = async (e) => {
     e.preventDefault();
+    if (loading) return; // Prevent multiple submissions
     setLoading(true);
     setError(null);
 
     try {
       const token = localStorage.getItem("token");
-      console.log("Stripe Payment Token:", token); // Debug log
+      console.log("Stripe Payment Token:", token);
       if (!token) {
         setError("Please log in to proceed with payment.");
-        setLoading(false);
         navigate("/login");
         return;
       }
@@ -41,14 +58,12 @@ const PaymentForm = ({ amount, courseId, courseTitle }) => {
 
       if (!stripe || !elements) {
         setError("Stripe or elements not initialized.");
-        setLoading(false);
         return;
       }
 
       const cardElement = elements.getElement(CardNumberElement);
       if (!cardElement) {
         setError("Card details are missing.");
-        setLoading(false);
         return;
       }
 
@@ -62,12 +77,14 @@ const PaymentForm = ({ amount, courseId, courseTitle }) => {
       if (paymentResult.error) {
         setError(paymentResult.error.message);
       } else {
+        console.log("Calling enrollInCourse from PaymentForm for course:", courseId);
         await enrollInCourse(courseId);
         setSuccess(true);
         setTimeout(() => navigate("/student/courses"), 3000);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.error || "Payment failed. Please try again.";
+      const errorMessage =
+        err.response?.data?.error || "Payment failed. Please try again.";
       setError(errorMessage);
       console.error("Payment error:", err.response?.data || err.message);
       if (errorMessage.includes("Unauthorized")) {
@@ -117,7 +134,9 @@ const PaymentForm = ({ amount, courseId, courseTitle }) => {
       {success && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60">
           <div className="bg-white p-8 rounded-lg shadow-xl text-center max-w-md">
-            <h2 className="text-green-600 text-2xl font-bold mb-2">Payment Successful!</h2>
+            <h2 className="text-green-600 text-2xl font-bold mb-2">
+              Payment Successful!
+            </h2>
             <p className="text-gray-700 mb-4">
               You are now enrolled in <strong>{courseTitle}</strong>.
             </p>
@@ -143,6 +162,7 @@ const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [esewaError, setEsewaError] = useState(null);
   const [esewaPaymentData, setEsewaPaymentData] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false); // Track processing state
 
   useEffect(() => {
     if (courses.length > 0) {
@@ -153,12 +173,14 @@ const PaymentPage = () => {
   }, [id, courses, navigate]);
 
   const handleEsewaPayment = async () => {
+    if (isProcessing) return; // Prevent multiple submissions
+    setIsProcessing(true);
     setPaymentMethod("esewa");
     setEsewaError(null);
 
     try {
       const token = localStorage.getItem("token");
-      console.log("eSewa Payment Token:", token); // Debug log
+      console.log("eSewa Payment Token:", token);
       if (!token) {
         setEsewaError("Please log in to proceed with payment.");
         navigate("/login");
@@ -171,12 +193,11 @@ const PaymentPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("eSewa Initiation Response:", data); // Debug log
+      console.log("eSewa Initiation Response:", data);
 
       if (data.success) {
         setEsewaPaymentData(data.paymentData);
 
-        // Log the form data being submitted to eSewa
         console.log("Submitting Form to eSewa:");
         console.log("Form Action URL:", data.paymentUrl);
         console.log("Form Data:", data.paymentData);
@@ -189,10 +210,10 @@ const PaymentPage = () => {
           const input = document.createElement("input");
           input.type = "hidden";
           input.name = key;
-          // Ensure values are properly encoded
-          input.value = encodeURIComponent(data.paymentData[key]);
+          input.value = data.paymentData[key];
           form.appendChild(input);
-          console.log(`Form Field - ${key}: ${data.paymentData[key]}`); // Log each field
+
+          console.log(`Form Field - ${key}: ${data.paymentData[key]}`);
         });
 
         document.body.appendChild(form);
@@ -201,16 +222,20 @@ const PaymentPage = () => {
         setEsewaError(data.error || "Failed to initiate eSewa payment.");
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to initiate eSewa payment.";
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to initiate eSewa payment. Please try again.";
       console.error("eSewa payment error:", error.response?.data || error.message);
-      if (errorMessage.includes("Login Error") || errorMessage.includes("Unauthorized")) {
-        setEsewaError("Session expired. Please log in again.");
+      setEsewaError(errorMessage);
+      if (
+        errorMessage.includes("Login Error") ||
+        errorMessage.includes("Unauthorized")
+      ) {
         navigate("/login");
-      } else if (errorMessage.includes("Invalid payload signature")) {
-        setEsewaError("Invalid payload signature. Please try again or contact support.");
-      } else {
-        setEsewaError(errorMessage);
       }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -218,7 +243,12 @@ const PaymentPage = () => {
     navigate(-1);
   };
 
-  if (!course) return <p className="text-center text-gray-600 text-lg mt-10">Loading...</p>;
+  if (!course)
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <p className="text-center text-gray-600 text-lg">Loading...</p>
+      </div>
+    );
 
   return (
     <div className="flex justify-center min-h-screen bg-gray-50 p-6 pt-20">
@@ -235,12 +265,15 @@ const PaymentPage = () => {
         </h2>
         <p className="text-center text-gray-600 mb-4">Price: NPR {course.price}</p>
         <div className="border-t border-gray-200 pt-4 mb-6">
-          <h3 className="text-lg font-medium text-gray-700 mb-3">Course Details</h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-3">
+            Course Details
+          </h3>
           <div className="space-y-2 text-gray-600">
             <div className="flex items-center">
               <FaUser className="text-[#134e4a] mr-2" />
               <p>
-                <span className="font-medium">Tutor:</span> {course.tutor || "Not specified"}
+                <span className="font-medium">Tutor:</span>{" "}
+                {course.tutor || "Not specified"}
               </p>
             </div>
             <div className="flex items-center">
@@ -260,19 +293,23 @@ const PaymentPage = () => {
         </div>
         {!paymentMethod && (
           <div className="flex flex-col items-center my-6">
-            <h3 className="text-lg font-medium text-gray-700 mb-4">Select Payment Method</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-4">
+              Select Payment Method
+            </h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4 w-full">
               <button
                 onClick={() => setPaymentMethod("stripe")}
                 className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition duration-300 font-medium w-full sm:w-auto"
+                disabled={isProcessing}
               >
                 Pay with Stripe
               </button>
               <button
                 onClick={handleEsewaPayment}
                 className="bg-[#134e4a] text-white px-6 py-3 rounded-lg hover:bg-[#0c3c38] transition duration-300 font-medium w-full sm:w-auto"
+                disabled={isProcessing}
               >
-                Pay with eSewa
+                {isProcessing ? "Processing..." : "Pay with eSewa"}
               </button>
             </div>
           </div>
@@ -280,7 +317,9 @@ const PaymentPage = () => {
         {paymentMethod === "stripe" && (
           <div className="mt-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-700">Pay with Stripe</h3>
+              <h3 className="text-lg font-medium text-gray-700">
+                Pay with Stripe
+              </h3>
               <button
                 onClick={() => setPaymentMethod(null)}
                 className="text-[#134e4a] hover:underline text-sm"
@@ -300,7 +339,9 @@ const PaymentPage = () => {
         {paymentMethod === "esewa" && (
           <div className="mt-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-700">Pay with eSewa</h3>
+              <h3 className="text-lg font-medium text-gray-700">
+                Pay with eSewa
+              </h3>
               <button
                 onClick={() => {
                   setPaymentMethod(null);
