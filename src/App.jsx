@@ -34,6 +34,7 @@ import QuizPage from "./pages/courses/QuizPage";
 import TutorQuizzes from "./pages/Tutor/TutorQuizzes";
 import Success from "./pages/courses/Success";
 import Failure from "./pages/courses/Failure";
+import CourseForum from "./pages/courses/CourseForum";
 
 const App = () => {
     const { isAuth, loading, user } = UserData();
@@ -297,6 +298,14 @@ const App = () => {
                             element={
                                 <ProtectedRoute role="student">
                                     <MyCourses />
+                                </ProtectedRoute>
+                            }
+                        />
+                         <Route
+                            path="/student/course/forum/:courseId"
+                            element={
+                                <ProtectedRoute role="student">
+                                    <CourseForum />
                                 </ProtectedRoute>
                             }
                         />
