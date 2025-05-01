@@ -13,4 +13,7 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ["@tiptap/react", "@tiptap/core", "@tiptap/starter-kit", "@tiptap/extension-mention"],
+  },
 });
