@@ -8,7 +8,7 @@ const EnrollContext = createContext();
 export const EnrollContextProvider = ({ children }) => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [enrollmentCache, setEnrollmentCache] = useState(new Set()); // Cache to prevent duplicate enrollments
+  const [enrollmentCache, setEnrollmentCache] = useState(new Set());
 
   const checkToken = () => {
     const token = localStorage.getItem("token");
@@ -19,7 +19,6 @@ export const EnrollContextProvider = ({ children }) => {
     return token;
   };
 
-  // Check if user is already enrolled in a course
   const isAlreadyEnrolled = async (courseId) => {
     try {
       const token = checkToken();
@@ -36,7 +35,6 @@ export const EnrollContextProvider = ({ children }) => {
     }
   };
 
-  // Fetch enrolled courses
   const fetchEnrolledCourses = useCallback(async () => {
     setLoading(true);
     try {
@@ -60,10 +58,9 @@ export const EnrollContextProvider = ({ children }) => {
     }
   }, []);
 
-  // Enroll in a course
   const enrollInCourse = useCallback(
     async (courseId) => {
-      const cacheKey = `${courseId}-${localStorage.getItem("userId") || "unknown"}`; // Unique key per user and course
+      const cacheKey = `${courseId}-${localStorage.getItem("userId") || "unknown"}`;
       if (enrollmentCache.has(cacheKey)) {
         console.log("Enrollment already in progress for", cacheKey);
         toast.info("Enrollment already in progress");
@@ -75,13 +72,11 @@ export const EnrollContextProvider = ({ children }) => {
         const token = checkToken();
         if (!token) return;
 
-        // Validate courseId
         if (!courseId || typeof courseId !== "string" || !courseId.match(/^[0-9a-fA-F]{24}$/)) {
           toast.error("Invalid course ID");
           throw new Error("Invalid course ID");
         }
 
-        // Check if already enrolled
         const alreadyEnrolled = await isAlreadyEnrolled(courseId);
         if (alreadyEnrolled) {
           console.log("User already enrolled in course:", courseId);
@@ -89,7 +84,7 @@ export const EnrollContextProvider = ({ children }) => {
           return;
         }
 
-        console.log("Enrolling in course with ID:", courseId); // Debug log
+        console.log("Enrolling in course with ID:", courseId);
 
         setEnrollmentCache((prev) => new Set(prev).add(cacheKey));
 
@@ -101,14 +96,14 @@ export const EnrollContextProvider = ({ children }) => {
 
         if (data.success) {
           toast.success(data.message || "Successfully enrolled in the course!");
-          await fetchEnrolledCourses(); // Refresh the enrolled courses list
+          await fetchEnrolledCourses();
         } else {
           toast.error(data.message || "Failed to enroll in course");
         }
       } catch (error) {
         console.error("Enrollment Error:", error);
         toast.error(error.response?.data?.message || "An error occurred");
-        throw error; // Re-throw the error to be caught by the caller
+        throw error;
       } finally {
         setEnrollmentCache((prev) => {
           const newSet = new Set(prev);
