@@ -12,125 +12,356 @@ import {
   ChevronLeft,
   Send,
   MessageSquare,
-  ChevronDown,
-  ChevronUp,
   Search,
   Heart,
   ArrowUp,
+  X,
+  Edit,
+  Trash,
+  User,
 } from "lucide-react";
 import io from "socket.io-client";
+import { debounce } from "lodash";
 
-// Custom suggestion for tagging
-const suggestion = {
-  items: ({ query }) => {
-    return [];
-  },
-  render: () => {
-    let reactRenderer;
-    let popup;
+// TiptapEditor Component
+const TiptapEditor = React.memo(
+  ({ postId, taggableUsers, onEditorChange, initialContent }) => {
+    const [tagging, setTagging] = useState({ active: false, query: "", postId: null, items: [] });
 
-    return {
-      onStart: (props) => {
-        reactRenderer = props;
-        popup = props.clientRect;
-        props.setTagging({ active: true, query: props.query, postId: props.postId });
-      },
-      onUpdate(props) {
-        reactRenderer.query = props.query;
-        popup = props.clientRect;
-        props.setTagging({ active: true, query: props.query, postId: props.postId });
-      },
-      onKeyDown(props) {
-        if (props.event.key === "Escape") {
-          props.setTagging({ active: false, query: "", postId: null });
-          return true;
-        }
-        return false;
-      },
-      onExit(props) {
-        props.setTagging({ active: false, query: "", postId: null });
-      },
+    const selectTag = (username) => {
+      if (!editor) return;
+
+      editor.commands.insertContent(`@${username} `);
+      setTagging({ active: false, query: "", postId: null, items: [] });
     };
-  },
-};
 
-// Editor Component Wrapper
-const TiptapEditor = React.memo(({ postId, setTagging, taggableUsers, selectTag, tagging, onEditorChange }) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Mention.configure({
-        HTMLAttributes: {
-          class: "mention",
+    const editor = useEditor({
+      extensions: [
+        StarterKit,
+        Mention.configure({
+          HTMLAttributes: {
+            class: "mention",
+            style: "color: #134e4a; font-weight: 600; cursor: pointer;",
+          },
+          suggestion: {
+            items: ({ query }) => {
+              console.log("Taggable Users in items:", taggableUsers);
+              console.log("Query:", query);
+              if (!taggableUsers || taggableUsers.length === 0) {
+                return [];
+              }
+              return taggableUsers
+                .filter((user) => {
+                  if (!user || !user.username) {
+                    console.warn("Invalid user object:", user);
+                    return false;
+                  }
+                  return user.username.toLowerCase().includes(query.toLowerCase());
+                })
+                .map((user) => ({
+                  id: user._id,
+                  label: `@${user.username}`,
+                  username: user.username,
+                  firstname: user.firstname,
+                  lastname: user.lastname,
+                }));
+            },
+            render: () => {
+              let reactRenderer;
+              let popup;
+
+              return {
+                onStart: (props) => {
+                  console.log("Mention onStart triggered:", props);
+                  reactRenderer = props;
+                  popup = props.clientRect;
+                  setTagging({
+                    active: true,
+                    query: props.query,
+                    postId: postId, // Use the postId prop directly
+                    items: props.items,
+                  });
+                },
+                onUpdate(props) {
+                  console.log("Mention onUpdate:", props);
+                  reactRenderer.query = props.query;
+                  popup = props.clientRect;
+                  setTagging({
+                    active: true,
+                    query: props.query,
+                    postId: postId, // Use the postId prop directly
+                    items: props.items,
+                  });
+                },
+                onKeyDown(props) {
+                  console.log("Mention onKeyDown:", props.event.key);
+                  if (props.event.key === "Escape") {
+                    setTagging({ active: false, query: "", postId: null, items: [] });
+                    return true;
+                  }
+                  return false;
+                },
+                onExit() {
+                  console.log("Mention onExit");
+                  setTagging({ active: false, query: "", postId: null, items: [] });
+                },
+              };
+            },
+          },
+        }),
+      ],
+      content: initialContent || "",
+      editorProps: {
+        attributes: {
+          class:
+            "border border-gray-300 rounded-lg p-2 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-[#134e4a] prose prose-sm max-w-none",
         },
-        suggestion: {
-          ...suggestion,
-          setTagging,
-          postId,
-        },
-      }),
-    ],
-    content: "",
-    editorProps: {
-      attributes: {
-        class: "border border-gray-300 rounded-lg p-2 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-[#134e4a] prose prose-sm max-w-none",
       },
-    },
-    onCreate: ({ editor }) => {
-      onEditorChange(postId, editor);
-    },
-    onDestroy: () => {
-      onEditorChange(postId, null);
-    },
-  });
+      onCreate: ({ editor }) => {
+        onEditorChange(postId, editor);
+      },
+      onDestroy: () => {
+        onEditorChange(postId, null);
+      },
+    });
 
-  return (
-    <div className="relative">
-      <EditorContent editor={editor} />
-      {tagging.active && tagging.postId === postId && (
-        <div className="absolute z-10 bg-white border border-gray-300 rounded-lg shadow-lg mt-1 w-64 max-h-48 overflow-y-auto">
-          {taggableUsers
-            .filter((u) => u.username.toLowerCase().includes(tagging.query.toLowerCase()))
-            .map((u) => (
-              <div
-                key={u._id}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => selectTag(u.username, postId)}
-              >
-                {u.firstname} {u.lastname} (@{u.username})
-              </div>
-            ))}
+    return (
+      <div style={{ position: "relative" }}>
+        <EditorContent editor={editor} />
+        {tagging.active && tagging.postId === postId && (
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 10,
+              backgroundColor: "white",
+              border: "1px solid #d1d5db",
+              borderRadius: "0.5rem",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              marginTop: "0.25rem",
+              width: "16rem",
+              maxHeight: "12rem",
+              overflowY: "auto",
+            }}
+          >
+            {console.log("Tagging items in dropdown:", tagging.items)}
+            {tagging.items.length === 0 ? (
+              tagging.query === "" ? (
+                <div
+                  style={{
+                    padding: "0.5rem",
+                    color: "#6b7280",
+                    fontStyle: "italic",
+                  }}
+                >
+                  No users available to tag.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "0.5rem",
+                    color: "#6b7280",
+                    fontStyle: "italic",
+                  }}
+                >
+                  No matching users found.
+                </div>
+              )
+            ) : (
+              tagging.items.map((u) => (
+                <div
+                  key={u.id}
+                  style={{
+                    padding: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#f3f4f6")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                  onClick={() => selectTag(u.username)}
+                >
+                  {u.label}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+// Comment Component
+const Comment = React.memo(
+  ({
+    comment,
+    postId,
+    handleAddComment,
+    handleReaction,
+    taggableUsers,
+    user,
+    setNewCommentEditors,
+    isTaggableUsersLoaded,
+  }) => {
+    const [showReply, setShowReply] = useState(false);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+      isMounted.current = true;
+      return () => {
+        isMounted.current = false;
+      };
+    }, []);
+
+    const handleAddCommentWrapper = async (postId, commentId, editor) => {
+      await handleAddComment(postId, commentId, editor);
+      if (isMounted.current) {
+        setShowReply(false);
+      }
+    };
+
+    return (
+      <div style={{ borderLeft: "2px solid #d1d5db", paddingLeft: "1rem", marginBottom: "0.75rem" }}>
+        <div
+          style={{ fontSize: "0.875rem", color: "#4b5563" }}
+          dangerouslySetInnerHTML={{ __html: comment.content }}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.25rem" }}>
+          <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+            {comment.user.firstname} {comment.user.lastname} ({comment.user.role}) -{" "}
+            {new Date(comment.createdAt).toLocaleDateString("en-US", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </p>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            <button
+              onClick={() => handleReaction(postId, comment._id, "like")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                color: comment.reactions.some((r) => r.user._id === user._id && r.type === "like") ? "#ef4444" : "black",
+              }}
+            >
+              <Heart style={{ width: "24px", height: "24px" }} />
+              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                {comment.reactions.filter((r) => r.type === "like").length}
+              </span>
+            </button>
+            <button
+              onClick={() => handleReaction(postId, comment._id, "upvote")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                color: comment.reactions.some((r) => r.user._id === user._id && r.type === "upvote") ? "#3b82f6" : "black",
+              }}
+            >
+              <ArrowUp style={{ width: "24px", height: "24px" }} />
+              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                {comment.reactions.filter((r) => r.type === "upvote").length}
+              </span>
+            </button>
+            <button
+              onClick={() => setShowReply(!showReply)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                color: "black",
+              }}
+            >
+              <MessageSquare style={{ width: "24px", height: "24px" }} />
+              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                {comment.replies.length}
+              </span>
+            </button>
+          </div>
         </div>
-      )}
-    </div>
-  );
-});
+        {comment.taggedUsers.length > 0 && (
+          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+            Tagged: {comment.taggedUsers.map((u) => `@${u.username}`).join(", ")}
+          </p>
+        )}
+        <button
+          onClick={() => setShowReply(!showReply)}
+          style={{ fontSize: "0.75rem", color: "#134e4a", textDecoration: "underline", marginTop: "0.25rem", cursor: "pointer" }}
+        >
+          {showReply ? "Cancel" : "Reply"}
+        </button>
+        {showReply && isTaggableUsersLoaded && (
+          <div style={{ marginTop: "0.5rem", position: "relative" }}>
+            <TiptapEditor
+              postId={`${postId}-${comment._id}`}
+              taggableUsers={taggableUsers}
+              onEditorChange={setNewCommentEditors}
+            />
+            <button
+              onClick={() =>
+                handleAddCommentWrapper(postId, comment._id, newCommentEditors[`${postId}-${comment._id}`])
+              }
+              style={{
+                marginTop: "0.5rem",
+                padding: "0.5rem",
+                backgroundColor: "#134e4a",
+                color: "white",
+                borderRadius: "0.5rem",
+                transition: "background-color 0.3s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0c3c38")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#134e4a")}
+            >
+              <Send style={{ width: "1rem", height: "1rem" }} />
+            </button>
+          </div>
+        )}
+        {comment.replies.length > 0 && (
+          <div style={{ marginTop: "0.75rem", paddingLeft: "1rem" }}>
+            {comment.replies.map((reply) => (
+              <Comment
+                key={reply._id}
+                comment={reply}
+                postId={postId}
+                handleAddComment={handleAddComment}
+                handleReaction={handleReaction}
+                taggableUsers={taggableUsers}
+                user={user}
+                setNewCommentEditors={setNewCommentEditors}
+                isTaggableUsersLoaded={isTaggableUsersLoaded}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
-// Debounce utility function
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
+// Main CourseForum Component
 const CourseForum = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user } = UserData();
   const { progress, loading, fetchStudentCourseProgress } = CourseData();
   const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]); // Store all posts for filtering
   const [newPostTitle, setNewPostTitle] = useState("");
+  const [editPost, setEditPost] = useState(null);
   const [socket, setSocket] = useState(null);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [taggableUsers, setTaggableUsers] = useState([]);
-  const [tagging, setTagging] = useState({ active: false, query: "", postId: null });
   const [expandedPosts, setExpandedPosts] = useState([]);
   const [newCommentEditors, setNewCommentEditors] = useState({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showMyPosts, setShowMyPosts] = useState(false); // State to toggle My Posts filter
+  const [isTaggableUsersLoaded, setIsTaggableUsersLoaded] = useState(false); // Track if taggable users are loaded
 
   const forumRef = useRef(null);
   const isMounted = useRef(false);
@@ -140,6 +371,7 @@ const CourseForum = () => {
     debounce((newPosts) => {
       if (isMounted.current) {
         setPosts(newPosts);
+        setAllPosts(newPosts); // Store all posts for filtering
       }
     }, 300),
     []
@@ -158,6 +390,8 @@ const CourseForum = () => {
     debounce((users) => {
       if (isMounted.current) {
         setTaggableUsers(users);
+        console.log("Updated taggable users:", users);
+        setIsTaggableUsersLoaded(true); // Set loaded flag
       }
     }, 300),
     []
@@ -200,11 +434,15 @@ const CourseForum = () => {
       if (!isMounted.current) return;
       if (data.success) {
         debouncedSetTaggableUsers(data.users);
+      } else {
+        toast.error(data.message);
+        setIsTaggableUsersLoaded(true); // Still set as loaded to avoid infinite loading
       }
     } catch (err) {
       if (!isMounted.current) return;
       console.error("Failed to load taggable users:", err);
       toast.error(err.response?.data?.message || "Failed to load taggable users");
+      setIsTaggableUsersLoaded(true); // Still set as loaded to avoid infinite loading
     }
   }, [courseId, debouncedSetTaggableUsers]);
 
@@ -282,22 +520,59 @@ const CourseForum = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.post(
-        `${LMS_Backend}/api/forum/${courseId}`,
-        { title: newPostTitle, content, taggedUsernames },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let response;
+      if (editPost) {
+        response = await axios.put(
+          `${LMS_Backend}/api/forum/${courseId}/${editPost._id}`,
+          { title: newPostTitle, content, taggedUsernames },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        response = await axios.post(
+          `${LMS_Backend}/api/forum/${courseId}`,
+          { title: newPostTitle, content, taggedUsernames },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
       if (!isMounted.current) return;
-      if (data.success) {
+      if (response.data.success) {
         setNewPostTitle("");
         newPostEditor.commands.setContent("");
+        setEditPost(null);
+        setIsModalOpen(false);
+        toast.success(response.data.message);
+        fetchPosts();
+      } else {
+        toast.error(response.data.message);
+      }
+    } catch (err) {
+      if (!isMounted.current) return;
+      toast.error(err.response?.data?.message || (editPost ? "Failed to update post" : "Failed to create post"));
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditPost(post);
+    setNewPostTitle(post.title);
+    setIsModalOpen(true);
+  };
+
+  const handleDeletePost = async (postId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await axios.delete(`${LMS_Backend}/api/forum/${courseId}/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!isMounted.current) return;
+      if (data.success) {
         toast.success(data.message);
+        fetchPosts();
       } else {
         toast.error(data.message);
       }
     } catch (err) {
       if (!isMounted.current) return;
-      toast.error(err.response?.data?.message || "Failed to create post");
+      toast.error(err.response?.data?.message || "Failed to delete post");
     }
   };
 
@@ -326,6 +601,7 @@ const CourseForum = () => {
       if (data.success) {
         editor.commands.setContent("");
         debouncedSetPosts((prev) => prev.map((p) => (p._id === postId ? data.post : p)));
+        setExpandedPosts((prev) => prev.filter((id) => id !== postId));
         toast.success(data.message);
       } else {
         toast.error(data.message);
@@ -370,27 +646,18 @@ const CourseForum = () => {
     }
   };
 
-  const togglePost = (postId) => {
-    if (!isMounted.current) return;
-    setExpandedPosts((prev) =>
-      prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]
-    );
+  const toggleCommentEditor = (postId) => {
+    if (expandedPosts.includes(postId)) {
+      setExpandedPosts((prev) => prev.filter((id) => id !== postId));
+    } else {
+      setExpandedPosts((prev) => [...prev, postId]);
+    }
   };
 
   const extractTaggedUsernames = (content) => {
     const regex = /@(\w+)/g;
     const matches = content.match(regex) || [];
     return matches.map((match) => match.slice(1));
-  };
-
-  const selectTag = (username, postId) => {
-    const editor = newCommentEditors[postId];
-    if (!editor) return;
-
-    editor.commands.insertContent(`@${username} `);
-    if (isMounted.current) {
-      setTagging({ active: false, query: "", postId: null });
-    }
   };
 
   const handleSearch = () => {
@@ -401,183 +668,290 @@ const CourseForum = () => {
     navigate(`/student/course/progress/${courseId}`);
   };
 
+  const openModal = () => {
+    setEditPost(null);
+    setNewPostTitle("");
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditPost(null);
+    setNewPostTitle("");
+    const newPostEditor = newCommentEditors["newPost"];
+    if (newPostEditor) newPostEditor.commands.setContent("");
+  };
+
+  const handleShowMyPosts = () => {
+    if (!showMyPosts) {
+      const myPosts = allPosts.filter((post) => String(post.user._id) === String(user._id));
+      setPosts(myPosts);
+      setShowMyPosts(true);
+    } else {
+      setPosts(allPosts);
+      setShowMyPosts(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#134e4a]"></div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", backgroundColor: "#f9fafb" }}>
+        <div style={{ borderTop: "4px solid #134e4a", borderRadius: "50%", width: "4rem", height: "4rem", animation: "spin 1s linear infinite" }}></div>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center py-10">{error}</div>;
+    return <div style={{ color: "#ef4444", textAlign: "center", padding: "2.5rem" }}>{error}</div>;
   }
 
   if (!progress) {
-    return <div className="text-center py-10 text-gray-600">No progress found</div>;
+    return <div style={{ textAlign: "center", padding: "2.5rem", color: "#4b5563" }}>No progress found</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm p-4 md:p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div style={{ minHeight: "100vh", backgroundColor: "#f3f4f6" }}>
+      <header style={{ backgroundColor: "white", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)", padding: "1rem 1.5rem" }}>
+        <div style={{ maxWidth: "80rem", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <button
               onClick={handleBack}
-              className="flex items-center text-black hover:text-gray-700 transition duration-300"
+              style={{ display: "flex", alignItems: "center", color: "black", transition: "color 0.3s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#4b5563")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "black")}
             >
-              <ChevronLeft className="w-8 h-8 text-black" />
+              <ChevronLeft style={{ width: "2rem", height: "2rem", color: "black" }} />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+            <h1 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#111827" }}>
               {progress.course?.title} Discussion Forum
             </h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 px-4">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
+      <main style={{ maxWidth: "80rem", margin: "0 auto", padding: "1.5rem 1rem" }}>
+        <div style={{ backgroundColor: "white", borderRadius: "0.5rem", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)", padding: "1.5rem" }}>
+          {/* Search Section */}
+          <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", borderBottom: "1px solid #e5e7eb", paddingBottom: "1rem" }}>
+            <div style={{ position: "relative", flex: 1 }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-2 pl-10 focus:outline-none focus:ring-2 focus:ring-[#134e4a]"
+                style={{
+                  width: "100%",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "0.5rem",
+                  padding: "0.5rem 0.5rem 0.5rem 2.5rem",
+                  outline: "none",
+                  transition: "all 0.3s",
+                }}
                 placeholder="Search posts..."
+                onFocus={(e) => (e.target.style.border = "1px solid #134e4a")}
+                onBlur={(e) => (e.target.style.border = "1px solid #d1d5db")}
               />
-              <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+              <Search style={{ position: "absolute", left: "0.75rem", top: "0.65rem", width: "1.25rem", height: "1.25rem", color: "#9ca3af" }} />
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#134e4a]"
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                padding: "0.5rem",
+                outline: "none",
+                transition: "all 0.3s",
+                width: "120px",
+              }}
+              onFocus={(e) => (e.target.style.border = "1px solid #134e4a")}
+              onBlur={(e) => (e.target.style.border = "1px solid #d1d5db")}
             >
               <option value="createdAt">Date</option>
               <option value="reactions">Reactions</option>
             </select>
-            <button
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
-              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: "0.5rem",
+                padding: "0.5rem",
+                outline: "none",
+                transition: "all 0.3s",
+                width: "120px",
+              }}
+              onFocus={(e) => (e.target.style.border = "1px solid #134e4a")}
+              onBlur={(e) => (e.target.style.border = "1px solid #d1d5db")}
             >
-              {sortOrder === "desc" ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-            </button>
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
             <button
               onClick={handleSearch}
-              className="px-4 py-2 bg-[#134e4a] text-white rounded-lg hover:bg-[#0c3c38]"
+              style={{
+                padding: "0.5rem 1rem",
+                backgroundColor: "#134e4a",
+                color: "white",
+                borderRadius: "0.5rem",
+                transition: "background-color 0.3s",
+                width: "100px",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0c3c38")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#134e4a")}
             >
               Search
             </button>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Start a Discussion</h2>
-            <form onSubmit={handleCreatePost} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                <input
-                  type="text"
-                  value={newPostTitle}
-                  onChange={(e) => setNewPostTitle(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#134e4a]"
-                  placeholder="Enter post title"
-                />
+          {/* Discussions Section */}
+          <div style={{ marginBottom: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#111827" }}>Discussions</h2>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  onClick={handleShowMyPosts}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "0.5rem",
+                    backgroundColor: showMyPosts ? "#0c3c38" : "#134e4a",
+                    color: "white",
+                    transition: "background-color 0.3s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0c3c38")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = showMyPosts ? "#0c3c38" : "#134e4a")}
+                >
+                  <User style={{ width: "1rem", height: "1rem" }} />
+                  {showMyPosts ? "Show All Posts" : "My Posts"}
+                </button>
+                <button
+                  onClick={openModal}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "0.5rem",
+                    backgroundColor: "#134e4a",
+                    color: "white",
+                    transition: "background-color 0.3s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0c3c38")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#134e4a")}
+                >
+                  <MessageSquare style={{ width: "1rem", height: "1rem" }} />
+                  Start a Discussion
+                </button>
               </div>
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Content *</label>
-                <TiptapEditor
-                  postId="newPost"
-                  setTagging={setTagging}
-                  taggableUsers={taggableUsers}
-                  selectTag={selectTag}
-                  tagging={tagging}
-                  onEditorChange={handleEditorChange}
-                />
-              </div>
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#134e4a] text-white hover:bg-[#0c3c38] transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Post
-              </button>
-            </form>
-          </div>
-
-          <div ref={forumRef}>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Discussions</h2>
+            </div>
             {posts.length === 0 ? (
-              <p className="text-gray-600">No posts yet. Be the first to start a discussion!</p>
+              <p style={{ color: "#4b5563", fontStyle: "italic", textAlign: "center", padding: "1rem", border: "1px solid #e5e7eb", borderRadius: "0.5rem" }}>
+                {showMyPosts ? "You haven't posted anything yet." : "No posts yet. Be the first to start a discussion!"}
+              </p>
             ) : (
-              posts.map((post) => (
-                <div key={post._id} className="border-b border-gray-200 py-4 last:border-b-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900">{post.title}</h3>
-                      <div
-                        className="text-sm text-gray-600 mt-1"
-                        dangerouslySetInnerHTML={{ __html: post.content }}
-                      />
-                      <div className="flex items-center gap-4 mt-2">
-                        <p className="text-xs text-gray-500">
-                          Posted by {post.user.firstname} {post.user.lastname} (
-                          {post.user.role}) on{" "}
-                          {new Date(post.createdAt).toLocaleDateString("en-US", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <div className="flex gap-2">
+              <div ref={forumRef}>
+                {posts.map((post) => (
+                  <div key={post._id} style={{ borderBottom: "1px solid #e5e7eb", padding: "1rem 0", borderBottomWidth: posts.indexOf(post) === posts.length - 1 ? "0" : "1px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <h3 style={{ fontSize: "1rem", fontWeight: "600", color: "#111827" }}>{post.title}</h3>
+                        <div
+                          style={{ fontSize: "0.875rem", color: "#4b5563", marginTop: "0.25rem" }}
+                          dangerouslySetInnerHTML={{ __html: post.content }}
+                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.5rem" }}>
+                          <p style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                            Posted by {post.user.firstname} {post.user.lastname} (
+                            {post.user.role}) on{" "}
+                            {new Date(post.createdAt).toLocaleDateString("en-US", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}
+                          </p>
+                          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                            <button
+                              onClick={() => handleReaction(post._id, null, "like")}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                color: post.reactions.some((r) => r.user._id === user._id && r.type === "like") ? "#ef4444" : "black",
+                              }}
+                            >
+                              <Heart style={{ width: "24px", height: "24px" }} />
+                              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                                {post.reactions.filter((r) => r.type === "like").length}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => handleReaction(post._id, null, "upvote")}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                color: post.reactions.some((r) => r.user._id === user._id && r.type === "upvote") ? "#3b82f6" : "black",
+                              }}
+                            >
+                              <ArrowUp style={{ width: "24px", height: "24px" }} />
+                              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                                {post.reactions.filter((r) => r.type === "upvote").length}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => toggleCommentEditor(post._id)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                color: "black",
+                              }}
+                            >
+                              <MessageSquare style={{ width: "24px", height: "24px" }} />
+                              <span style={{ fontSize: "0.875rem", marginLeft: "0.25rem" }}>
+                                {post.comments.length}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                        {post.taggedUsers.length > 0 && (
+                          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                            Tagged: {post.taggedUsers.map((u) => `@${u.username}`).join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      {String(post.user._id) === String(user._id) && (
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button
-                            onClick={() => handleReaction(post._id, null, "like")}
-                            className={`flex items-center gap-1 ${
-                              post.reactions.some(
-                                (r) => r.user._id === user._id && r.type === "like"
-                              )
-                                ? "text-red-500"
-                                : "text-gray-500"
-                            }`}
+                            onClick={() => handleEditPost(post)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                              color: "#134e4a",
+                            }}
                           >
-                            <Heart className="w-4 h-4" />
-                            {post.reactions.filter((r) => r.type === "like").length}
+                            <Edit style={{ width: "20px", height: "20px" }} />
                           </button>
                           <button
-                            onClick={() => handleReaction(post._id, null, "upvote")}
-                            className={`flex items-center gap-1 ${
-                              post.reactions.some(
-                                (r) => r.user._id === user._id && r.type === "upvote"
-                              )
-                                ? "text-blue-500"
-                                : "text-gray-500"
-                            }`}
+                            onClick={() => handleDeletePost(post._id)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                              color: "#ef4444",
+                            }}
                           >
-                            <ArrowUp className="w-4 h-4" />
-                            {post.reactions.filter((r) => r.type === "upvote").length}
+                            <Trash style={{ width: "20px", height: "20px" }} />
                           </button>
                         </div>
-                      </div>
-                      {post.taggedUsers.length > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Tagged: {post.taggedUsers.map((u) => `@${u.username}`).join(", ")}
-                        </p>
                       )}
                     </div>
-                    <button
-                      onClick={() => togglePost(post._id)}
-                      className="text-gray-600 hover:text-gray-800"
-                    >
-                      {expandedPosts.includes(post._id) ? (
-                        <ChevronUp className="w-5 h-5" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                  {expandedPosts.includes(post._id) && (
-                    <div className="mt-4 pl-6">
-                      {post.comments.length > 0 ? (
-                        post.comments.map((comment) => (
+                    {post.comments.length > 0 && (
+                      <div style={{ marginTop: "1rem", paddingLeft: "1.5rem" }}>
+                        {post.comments.map((comment) => (
                           <Comment
                             key={comment._id}
                             comment={comment}
@@ -587,167 +961,145 @@ const CourseForum = () => {
                             taggableUsers={taggableUsers}
                             user={user}
                             setNewCommentEditors={setNewCommentEditors}
-                            tagging={tagging}
-                            setTagging={setTagging}
-                            selectTag={selectTag}
+                            isTaggableUsersLoaded={isTaggableUsersLoaded}
                           />
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-600">No comments yet.</p>
-                      )}
-                      <div className="mt-4 relative">
-                        <TiptapEditor
-                          postId={post._id}
-                          setTagging={setTagging}
-                          taggableUsers={taggableUsers}
-                          selectTag={selectTag}
-                          tagging={tagging}
-                          onEditorChange={handleEditorChange}
-                        />
-                        <button
-                          onClick={() =>
-                            handleAddComment(post._id, null, newCommentEditors[post._id])
-                          }
-                          className="mt-2 p-2 bg-[#134e4a] text-white rounded-lg hover:bg-[#0c3c38] transition-colors"
-                        >
-                          <Send className="w-4 h-4" />
-                        </button>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))
+                    )}
+                    {expandedPosts.includes(post._id) && isTaggableUsersLoaded && (
+                      <div style={{ marginTop: "1rem", paddingLeft: "1.5rem" }}>
+                        <div style={{ position: "relative" }}>
+                          <TiptapEditor
+                            postId={post._id}
+                            taggableUsers={taggableUsers}
+                            onEditorChange={handleEditorChange}
+                          />
+                          <button
+                            onClick={() =>
+                              handleAddComment(post._id, null, newCommentEditors[post._id])
+                            }
+                            style={{
+                              marginTop: "0.5rem",
+                              padding: "0.5rem",
+                              backgroundColor: "#134e4a",
+                              color: "white",
+                              borderRadius: "0.5rem",
+                              transition: "background-color 0.3s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0c3c38")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#134e4a")}
+                          >
+                            <Send style={{ width: "1rem", height: "1rem" }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
       </main>
+
+      {/* Modal for Creating/Editing a Discussion */}
+      {isModalOpen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+          <div style={{ backgroundColor: "white", borderRadius: "0.5rem", padding: "1.5rem", width: "100%", maxWidth: "32rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#111827" }}>
+                {editPost ? "Edit Discussion" : "Start a Discussion"}
+              </h2>
+              <button onClick={closeModal} style={{ color: "#4b5563", transition: "color 0.3s" }} onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")} onMouseLeave={(e) => (e.currentTarget.style.color = "#4b5563")}>
+                <X style={{ width: "1.5rem", height: "1.5rem" }} />
+              </button>
+            </div>
+            <form onSubmit={handleCreatePost} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.25rem" }}>Title *</label>
+                <input
+                  type="text"
+                  value={newPostTitle}
+                  onChange={(e) => setNewPostTitle(e.target.value)}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "0.5rem",
+                    padding: "0.5rem",
+                    outline: "none",
+                    transition: "all 0.3s",
+                  }}
+                  placeholder="Enter post title"
+                  onFocus={(e) => (e.target.style.border = "1px solid #134e4a")}
+                  onBlur={(e) => (e.target.style.border = "1px solid #d1d5db")}
+                />
+              </div>
+              <div style={{ position: "relative" }}>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.25rem" }}>Content *</label>
+                {isTaggableUsersLoaded ? (
+                  <TiptapEditor
+                    postId="newPost"
+                    taggableUsers={taggableUsers}
+                    onEditorChange={handleEditorChange}
+                    initialContent={editPost ? editPost.content : ""}
+                  />
+                ) : (
+                  <div style={{ padding: "0.5rem", color: "#6b7280", fontStyle: "italic" }}>
+                    Loading users...
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "#e5e7eb",
+                    color: "#1f2937",
+                    borderRadius: "0.5rem",
+                    transition: "background-color 0.3s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#d1d5db")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#e5e7eb")}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!isTaggableUsersLoaded}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "0.5rem",
+                    backgroundColor: isTaggableUsersLoaded ? "#134e4a" : "#d1d5db",
+                    color: "white",
+                    transition: "background-color 0.3s",
+                    cursor: isTaggableUsersLoaded ? "pointer" : "not-allowed",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (isTaggableUsersLoaded) {
+                      e.currentTarget.style.backgroundColor = "#0c3c38";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isTaggableUsersLoaded) {
+                      e.currentTarget.style.backgroundColor = "#134e4a";
+                    }
+                  }}
+                >
+                  <MessageSquare style={{ width: "1rem", height: "1rem" }} />
+                  {editPost ? "Update" : "Post"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-const Comment = React.memo(
-  ({
-    comment,
-    postId,
-    handleAddComment,
-    handleReaction,
-    taggableUsers,
-    user,
-    setNewCommentEditors,
-    tagging,
-    setTagging,
-    selectTag,
-  }) => {
-    const [showReply, setShowReply] = useState(false);
-    const isMounted = useRef(true);
-
-    useEffect(() => {
-      isMounted.current = true;
-      return () => {
-        isMounted.current = false;
-      };
-    }, []);
-
-    const handleAddCommentWrapper = async (postId, commentId, editor) => {
-      await handleAddComment(postId, commentId, editor);
-      if (isMounted.current) {
-        setShowReply(false);
-      }
-    };
-
-    return (
-      <div className="border-l-2 border-gray-300 pl-4 mb-3">
-        <div
-          className="text-sm text-gray-600"
-          dangerouslySetInnerHTML={{ __html: comment.content }}
-        />
-        <div className="flex items-center gap-4 mt-1">
-          <p className="text-xs text-gray-500">
-            {comment.user.firstname} {comment.user.lastname} ({comment.user.role}) -{" "}
-            {new Date(comment.createdAt).toLocaleDateString("en-US", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleReaction(postId, comment._id, "like")}
-              className={`flex items-center gap-1 ${
-                comment.reactions.some((r) => r.user._id === user._id && r.type === "like")
-                  ? "text-red-500"
-                  : "text-gray-500"
-              }`}
-            >
-              <Heart className="w-4 h-4" />
-              {comment.reactions.filter((r) => r.type === "like").length}
-            </button>
-            <button
-              onClick={() => handleReaction(postId, comment._id, "upvote")}
-              className={`flex items-center gap-1 ${
-                comment.reactions.some((r) => r.user._id === user._id && r.type === "upvote")
-                  ? "text-blue-500"
-                  : "text-gray-500"
-              }`}
-            >
-              <ArrowUp className="w-4 h-4" />
-              {comment.reactions.filter((r) => r.type === "upvote").length}
-            </button>
-          </div>
-        </div>
-        {comment.taggedUsers.length > 0 && (
-          <p className="text-xs text-gray-500 mt-1">
-            Tagged: {comment.taggedUsers.map((u) => `@${u.username}`).join(", ")}
-          </p>
-        )}
-        <button
-          onClick={() => setShowReply(!showReply)}
-          className="text-xs text-[#134e4a] hover:underline mt-1"
-        >
-          {showReply ? "Cancel" : "Reply"}
-        </button>
-        {showReply && (
-          <div className="mt-2 relative">
-            <TiptapEditor
-              postId={`${postId}-${comment._id}`}
-              setTagging={setTagging}
-              taggableUsers={taggableUsers}
-              selectTag={selectTag}
-              tagging={tagging}
-              onEditorChange={setNewCommentEditors}
-            />
-            <button
-              onClick={() =>
-                handleAddCommentWrapper(postId, comment._id, newCommentEditors[`${postId}-${comment._id}`])
-              }
-              className="mt-2 p-2 bg-[#134e4a] text-white rounded-lg hover:bg-[#0c3c38] transition-colors"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-        {comment.replies.length > 0 && (
-          <div className="mt-3 pl-4">
-            {comment.replies.map((reply) => (
-              <Comment
-                key={reply._id}
-                comment={reply}
-                postId={post._id}
-                handleAddComment={handleAddComment}
-                handleReaction={handleReaction}
-                taggableUsers={taggableUsers}
-                user={user}
-                setNewCommentEditors={setNewCommentEditors}
-                tagging={tagging}
-                setTagging={setTagging}
-                selectTag={selectTag}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-);
 
 export default CourseForum;
