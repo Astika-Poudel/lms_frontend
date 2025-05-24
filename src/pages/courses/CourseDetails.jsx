@@ -1,31 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import { CourseData } from "../../context/CourseContext";
+import { LMS_Backend } from "../../main";
 
 const CourseDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const {
     courses,
-    fetchCourses,
     fetchLectures,
     lectures,
     lecturesLoading,
-    fetchTutorRatings,
-    tutorRatings,
+    fetchCourseRatings,
+    courseRatings,
   } = CourseData();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lecturesFetched, setLecturesFetched] = useState(false);
-  const [ratingsFetched, setRatingsFetched] = useState(false);
+  const [courseRatingsFetched, setCourseRatingsFetched] = useState(false);
 
   useEffect(() => {
-    fetchCourses().then(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (!loading && courses.length > 0) {
+    if (courses.length > 0) {
       const foundCourse = courses.find((c) => c._id === id);
       if (foundCourse) {
         setCourse(foundCourse);
@@ -36,30 +32,29 @@ const CourseDetails = () => {
             .catch((error) => console.error("Error fetching lectures:", error));
         }
 
-        if (!ratingsFetched) {
-          fetchTutorRatings(id)
-            .then(() => setRatingsFetched(true))
-            .catch((error) => console.error("Error fetching ratings:", error));
+        if (!courseRatingsFetched) {
+          fetchCourseRatings(id)
+            .then(() => setCourseRatingsFetched(true))
+            .catch((error) => console.error("Error fetching course ratings:", error));
         }
       } else {
         setCourse(null);
       }
+      setLoading(false);
     }
   }, [
-    loading,
     courses,
     id,
     fetchLectures,
     lecturesFetched,
-    fetchTutorRatings,
-    ratingsFetched,
+    fetchCourseRatings,
+    courseRatingsFetched,
   ]);
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  // Function to calculate time ago
   const timeAgo = (date) => {
     const now = new Date();
     const reviewDate = new Date(date);
@@ -104,12 +99,34 @@ const CourseDetails = () => {
         <div>
           <h2 className="text-3xl font-semibold text-white mb-4">{course.title}</h2>
           <p className="text-gray-200 mb-4">{course.description}</p>
+          <div className="flex items-center gap-1 mb-4">
+            {[...Array(5)].map((_, i) => (
+              <span
+                key={i}
+                className={`text-2xl ${i < Math.round(course.averageRating) ? "text-yellow-400" : "text-gray-300"}`}
+              >
+                ★
+              </span>
+            ))}
+            <span className="ml-2 text-sm text-gray-200">
+              {course.averageRating.toFixed(1)} ({course.ratingCount} reviews)
+            </span>
+          </div>
           <div className="space-y-2">
             <p className="font-semibold text-gray-200">Category: {course.category}</p>
             <p className="font-semibold text-gray-200">Duration: {course.duration} Hours</p>
             <p className="font-semibold text-gray-200">Price: NPR {course.price}</p>
             <p className="font-semibold text-gray-200">
-              Tutor: {course.Tutor ? `${course.Tutor.firstname} ${course.Tutor.lastname}` : "Not assigned"}
+              Tutor: {course.Tutor ? (
+                <Link
+                  to={`/tutor/${course.Tutor._id}`}
+                  className="text-gray-200 hover:text-white underline"
+                >
+                  {course.Tutor.firstname} {course.Tutor.lastname}
+                </Link>
+              ) : (
+                "Not assigned"
+              )}
             </p>
           </div>
         </div>
@@ -142,27 +159,63 @@ const CourseDetails = () => {
         <p className="text-gray-500">No course content available.</p>
       )}
 
-      <h3 className="text-2xl font-semibold text-gray-800 mt-6">Tutor Ratings & Feedback</h3>
-      {ratingsFetched && tutorRatings.length > 0 ? (
-        <div className="mt-4 bg-white rounded-lg shadow-md p-6">
-          {tutorRatings.map((rating, index) => (
-            <div key={index} className="mb-4 border-b pb-4 last:border-b-0">
-              <div className="flex items-center mb-2">
-                <span className="font-semibold text-gray-800 mr-2">
-                  {rating.student.firstName} {rating.student.lastName}
-                </span>
-                <span className="text-yellow-400">{'★'.repeat(rating.rating)}</span>
-                <span className="text-gray-400">{'★'.repeat(5 - rating.rating)}</span>
-                <span className="ml-2 text-gray-500 text-sm">
-                  {timeAgo(rating.createdAt)}
-                </span>
+      <h3 className="text-2xl font-semibold text-gray-800 mt-6">Course Ratings & Feedback</h3>
+      {courseRatingsFetched ? (
+        courseRatings.length > 0 ? (
+          <div className="mt-4 bg-white rounded-lg shadow-md p-6">
+            {courseRatings.map((rating, index) => (
+              <div key={index} className="mb-4 border-b pb-4 last:border-b-0">
+                <div className="flex items-center mb-2">
+                  {/* Make the student's image clickable */}
+                  {rating.studentId && rating.studentId._id ? (
+                    <Link to={`/student/${rating.studentId._id}`}>
+                      <img
+                        src={
+                          rating.student?.image
+                            ? `${LMS_Backend}/Uploads/${rating.student.image}`
+                            : "https://via.placeholder.com/40"
+                        }
+                        alt={`${rating.student?.firstname || "Unknown"} ${
+                          rating.student?.lastname || "User"
+                        }`}
+                        className="w-10 h-10 rounded-full mr-3 object-cover"
+                      />
+                    </Link>
+                  ) : (
+                    <img
+                      src={
+                        rating.student?.image
+                          ? `${LMS_Backend}/Uploads/${rating.student.image}`
+                          : "https://via.placeholder.com/40"
+                      }
+                      alt={`${rating.student?.firstname || "Unknown"} ${
+                        rating.student?.lastname || "User"
+                      }`}
+                      className="w-10 h-10 rounded-full mr-3 object-cover"
+                    />
+                  )}
+                  <div>
+                    <span className="font-semibold text-gray-800 mr-2">
+                      {rating.student?.firstname || "Unknown"} {rating.student?.lastname || "User"}
+                    </span>
+                    <div className="flex items-center">
+                      <span className="text-yellow-400">{"★".repeat(rating.rating)}</span>
+                      <span className="text-gray-400">{"★".repeat(5 - rating.rating)}</span>
+                      <span className="ml-2 text-gray-500 text-sm">
+                        {timeAgo(rating.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-gray-700">{rating.feedback || "No feedback provided."}</p>
               </div>
-              <p className="text-gray-700">{rating.feedback}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 mt-4">No course ratings available yet.</p>
+        )
       ) : (
-        <p className="text-gray-500 mt-4">No ratings available yet.</p>
+        <p className="text-gray-500 mt-4">Loading course ratings...</p>
       )}
     </div>
   );

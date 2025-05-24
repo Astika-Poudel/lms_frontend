@@ -1,10 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { TutorData } from "../../context/TutorContext";
+import { ChevronLeft } from "lucide-react";
 
 const TutorCourses = () => {
   const { tutorCourses, loading, error } = TutorData();
   const navigate = useNavigate();
+
+  // Updated back button handler
+  const handleBack = () => {
+    navigate("/dashboard/tutor");
+  };
 
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>;
@@ -16,7 +22,17 @@ const TutorCourses = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Assigned Courses</h1>
+      <button
+        onClick={handleBack}
+        className="mb-4 flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+        aria-label="Go back"
+      >
+        <ChevronLeft className="w-6 h-6 mr-2" />
+        Back
+      </button>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
+        My Assigned Courses
+      </h1>
       {tutorCourses.length === 0 ? (
         <p className="text-gray-600">No courses assigned to you yet.</p>
       ) : (
@@ -44,7 +60,8 @@ const TutorCourses = () => {
               </div>
               <button
                 onClick={() => navigate(`/tutor/courseoverview/${course._id}`)}
-                className="mt-4 w-full bg-teal-600 text-white py-2 rounded-md hover:bg-teal-700 transition-colors"
+                className="mt-4 w-full text-white py-2 rounded-md hover:bg-[#0f3b36] transition-colors"
+                style={{ backgroundColor: "#134e4a" }}
               >
                 Course Overview
               </button>

@@ -29,7 +29,7 @@ export const UserContextProvider = ({ children }) => {
             if (data.valid) {
                 setIsAuth(true);
                 setUser(data.user);
-                localStorage.setItem("user", JSON.stringify(data.user)); // Store user in localStorage for CourseContext
+                localStorage.setItem("user", JSON.stringify(data.user));
             } else {
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
@@ -48,14 +48,14 @@ export const UserContextProvider = ({ children }) => {
     const loginUser = async (username_or_email, password, navigate) => {
         setBtnLoading(true);
         try {
-            const { data } = await axios.post(`${LMS_Backend}/api/user/login`, {
+            const { data } = await axios.post(`${LMS_Backend}/api/login`, {
                 username_or_email,
                 password,
             });
 
             toast.success(data.message);
             localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user)); // Store user in localStorage
+            localStorage.setItem("user", JSON.stringify(data.user));
             setUser(data.user);
             setIsAuth(true);
             navigate(`/dashboard/${data.user.role.toLowerCase()}`);
@@ -77,7 +77,7 @@ export const UserContextProvider = ({ children }) => {
     const registerUser = async (firstname, lastname, username, email, password, role, navigate) => {
         setBtnLoading(true);
         try {
-            const { data } = await axios.post(`${LMS_Backend}/api/user/register`, {
+            const { data } = await axios.post(`${LMS_Backend}/api/register`, {
                 firstname,
                 lastname,
                 username,
@@ -100,7 +100,7 @@ export const UserContextProvider = ({ children }) => {
         setBtnLoading(true);
         const activationToken = localStorage.getItem("activationToken");
         try {
-            const { data } = await axios.post(`${LMS_Backend}/api/user/verify`, {
+            const { data } = await axios.post(`${LMS_Backend}/api/verify`, {
                 otp,
                 activationToken,
             });
@@ -115,26 +115,26 @@ export const UserContextProvider = ({ children }) => {
         }
     };
 
-    const fetchAllUsers = async () => {
-        if (loading) return;
-        setLoading(true);
-        setError(null);
+const fetchAllUsers = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
 
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) throw new Error("No token found");
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No token found");
 
-            const { data } = await axios.get(`${LMS_Backend}/api/users`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+        const { data } = await axios.get(`${LMS_Backend}/api/users`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
 
-            setUsers(data);
-        } catch (err) {
-            setError(err.response?.data?.message || "Error fetching users");
-        } finally {
-            setLoading(false);
-        }
-    };
+        setUsers(data);
+    } catch (err) {
+        setError(err.response?.data?.message || "Error fetching users");
+    } finally {
+        setLoading(false);
+    }
+};
 
     const updateUserRole = async (userId, role) => {
         try {
@@ -171,6 +171,68 @@ export const UserContextProvider = ({ children }) => {
         }
     };
 
+    // Method to update profile
+    const updateProfile = async (username, firstname, lastname, email) => {
+        setBtnLoading(true);
+        try {
+            const { data } = await axios.put(
+                `${LMS_Backend}/api/profile`,
+                { username, firstname, lastname, email },
+                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+            );
+            setUser(data.user);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            toast.success(data.message);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to update profile");
+        } finally {
+            setBtnLoading(false);
+        }
+    };
+
+    // Method to change password
+    const changePassword = async (currentPassword, newPassword) => {
+        setBtnLoading(true);
+        try {
+            const { data } = await axios.put(
+                `${LMS_Backend}/api/change-password`,
+                { currentPassword, newPassword },
+                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+            );
+            toast.success(data.message);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to change password");
+        } finally {
+            setBtnLoading(false);
+        }
+    };
+
+    // Method to upload profile picture
+    const uploadProfilePicture = async (file) => {
+        setBtnLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const { data } = await axios.put(
+                `${LMS_Backend}/api/upload-profile-picture`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+            setUser(data.user);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            toast.success(data.message);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to upload profile picture");
+        } finally {
+            setBtnLoading(false);
+        }
+    };
+
     useEffect(() => {
         checkToken();
     }, []);
@@ -194,6 +256,9 @@ export const UserContextProvider = ({ children }) => {
                 fetchAllUsers,
                 updateUserRole,
                 deleteUser,
+                updateProfile,
+                changePassword,
+                uploadProfilePicture,
             }}
         >
             {children}

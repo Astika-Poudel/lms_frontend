@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { LMS_Backend } from "../main";
@@ -15,13 +15,16 @@ export const CourseContextProvider = ({ children }) => {
   const [lectures, setLectures] = useState([]);
   const [tutors, setTutors] = useState([]);
   const [tutorRatings, setTutorRatings] = useState([]);
+  const [progressCache, setProgressCache] = useState({});
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [btnLoading, setBtnLoading] = useState(false);
   const [lecturesLoading, setLecturesLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [notes, setNotes] = useState([]); // Add state for notes
+  const [notes, setNotes] = useState([]);
+  const [courseRatings, setCourseRatings] = useState([]);
+  const [courseRatingSubmitted, setCourseRatingSubmitted] = useState(false);
 
   const categories = [
     "All",
@@ -164,8 +167,9 @@ export const CourseContextProvider = ({ children }) => {
       });
       if (data.success) {
         return {
-          firstName: data.user.firstName,
-          lastName: data.user.lastName,
+          firstname: data.user.firstname,
+          lastname: data.user.lastname,
+          image: data.user.image,
         };
       } else {
         toast.error(data.message || "Failed to fetch student details");
@@ -187,12 +191,11 @@ export const CourseContextProvider = ({ children }) => {
         throw new Error("User ID not found");
       }
       const { data } = await axios.post(
-        `${LMS_Backend}/api/tutor-ratings/submit-rating`,
+        `${LMS_Backend}/api/submit-rating`,
         { courseId, rating, feedback, studentId },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       if (data.success) {
-        toast.success(data.message);
         return true;
       } else {
         toast.error(data.message || "Failed to submit rating");
@@ -211,7 +214,7 @@ export const CourseContextProvider = ({ children }) => {
     try {
       if (!checkToken()) return [];
       const { data } = await axios.get(
-        `${LMS_Backend}/api/tutor-ratings/${courseId}`,
+        `${LMS_Backend}/api/ratings/${courseId}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
@@ -222,13 +225,53 @@ export const CourseContextProvider = ({ children }) => {
             if (!rating.studentId) {
               return {
                 ...rating,
-                student: { firstName: "Unknown", lastName: "User" },
+                student: { firstname: "Unknown", lastname: "User" },
               };
             }
             const studentDetails = await fetchStudentDetails(rating.studentId);
             return {
               ...rating,
-              student: studentDetails || { firstName: "Unknown", lastName: "User" },
+              student: studentDetails || { firstname: "Unknown", lastname: "User" },
+            };
+          })
+        );
+        setTutorRatings(ratingsWithStudentDetails);
+        return ratingsWithStudentDetails;
+      } else {
+        toast.error(data.message || "Failed to fetch tutor ratings");
+        return [];
+      }
+    } catch (error) {
+      handleError(error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllTutorRatings = async (tutorId) => {
+    setLoading(true);
+    try {
+      if (!checkToken()) return [];
+      const { data } = await axios.get(
+        `${LMS_Backend}/api/ratings/all?tutorId=${tutorId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      if (data.success) {
+        const ratingsWithStudentDetails = await Promise.all(
+          data.ratings.map(async (rating) => {
+            if (!rating.studentId) {
+              return {
+                ...rating,
+                student: { firstname: "Unknown", lastname: "User" },
+              };
+            }
+            const studentDetails = await fetchStudentDetails(rating.studentId);
+            return {
+              ...rating,
+              student: studentDetails || { firstname: "Unknown", lastname: "User" },
             };
           })
         );
@@ -260,6 +303,10 @@ export const CourseContextProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
 
   const filterCoursesByQuery = (query) => {
     if (!query) {
@@ -346,27 +393,33 @@ export const CourseContextProvider = ({ children }) => {
     }
   };
 
-  const fetchStudentCourseProgress = async (courseId) => {
-    setLoading(true);
-    try {
-      if (!checkToken()) return null;
-      const { data } = await axios.get(`${LMS_Backend}/api/student/course/progress/${courseId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      if (data.success) {
-        setProgress(data.progress);
-        return data.progress;
-      } else {
-        toast.error(data.message || "Failed to load progress");
-        return null;
-      }
-    } catch (error) {
-      handleError(error);
+const fetchStudentCourseProgress = async (courseId, forceRefresh = false) => {
+  if (!forceRefresh && progressCache[courseId]) {
+    setProgress(progressCache[courseId]);
+    return progressCache[courseId];
+  }
+  setLoading(true);
+  try {
+    if (!checkToken()) return null;
+    const { data } = await axios.get(`${LMS_Backend}/api/student/course/progress/${courseId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    if (data.success) {
+      const newProgress = { ...data.progress }; 
+      setProgressCache((prev) => ({ ...prev, [courseId]: newProgress }));
+      setProgress(newProgress);
+      return newProgress;
+    } else {
+      toast.error(data.message || "Failed to load progress");
       return null;
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    handleError(error);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const markLectureWatched = async (courseId, lectureId) => {
     try {
@@ -376,7 +429,6 @@ export const CourseContextProvider = ({ children }) => {
         {},
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
-      toast.success(data.message);
       await fetchStudentCourseProgress(courseId);
     } catch (error) {
       handleError(error);
@@ -419,7 +471,6 @@ export const CourseContextProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (data) {
-        toast.success(data.message);
         setCourses((prevCourses) => prevCourses.filter((course) => course._id !== id));
         setFilteredCourses((prevFiltered) => prevFiltered.filter((course) => course._id !== id));
       }
@@ -546,6 +597,78 @@ export const CourseContextProvider = ({ children }) => {
     }
   };
 
+  const submitCourseRating = async (courseId, rating, feedback) => {
+    setBtnLoading(true);
+    try {
+      if (!checkToken()) return;
+      const user = JSON.parse(localStorage.getItem("user"));
+      const studentId = user?._id;
+      if (!studentId) {
+        throw new Error("User ID not found");
+      }
+      const { data } = await axios.post(
+        `${LMS_Backend}/api/course/rating/submit`,
+        { courseId, rating, feedback, studentId },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      if (data.success) {
+        setCourseRatingSubmitted(true);
+        return true;
+      } else {
+        toast.error(data.message || "Failed to submit course rating");
+        return false;
+      }
+    } catch (error) {
+      handleError(error);
+      return false;
+    } finally {
+      setBtnLoading(false);
+    }
+  };
+
+  const fetchCourseRatings = async (courseId) => {
+    setLoading(true);
+    try {
+      if (!checkToken()) return [];
+      const { data } = await axios.get(
+        `${LMS_Backend}/api/course/ratings/${courseId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      if (data.success) {
+        const ratingsWithStudentDetails = await Promise.all(
+          data.ratings.map(async (rating) => {
+            console.log("Rating studentId:", rating.studentId); 
+            if (!rating.studentId) {
+              return {
+                ...rating,
+                student: { firstname: "Unknown", lastname: "User" },
+              };
+            }
+            // Handle case where studentId is a string or object
+            const studentId = typeof rating.studentId === "object" ? rating.studentId._id : rating.studentId;
+            const studentDetails = await fetchStudentDetails(studentId);
+            return {
+              ...rating,
+              student: studentDetails || { firstname: "Unknown", lastname: "User" },
+            };
+          })
+        );
+        setCourseRatings(ratingsWithStudentDetails);
+        return ratingsWithStudentDetails;
+      } else {
+        toast.error(data.message || "Failed to fetch course ratings");
+        return [];
+      }
+    } catch (error) {
+      handleError(error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <CourseContext.Provider
       value={{
@@ -576,6 +699,7 @@ export const CourseContextProvider = ({ children }) => {
         submitTutorRating,
         tutorRatings,
         fetchTutorRatings,
+        fetchAllTutorRatings,
         selectedCategory,
         setSelectedCategory,
         searchQuery,
@@ -587,6 +711,11 @@ export const CourseContextProvider = ({ children }) => {
         createNote,
         updateNote,
         deleteNote,
+        courseRatings,
+        fetchCourseRatings,
+        submitCourseRating,
+        courseRatingSubmitted,
+        setCourseRatingSubmitted,
       }}
     >
       {children}

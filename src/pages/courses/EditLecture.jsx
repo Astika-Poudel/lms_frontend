@@ -68,74 +68,111 @@ const EditLecture = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">Edit Lecture</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="form-group">
-          <label htmlFor="title" className="block text-gray-700 font-medium mb-2">Lecture Title</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            placeholder="Enter lecture title"
-            required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+    <div className="flex flex-col min-h-screen bg-gray-100">
 
-        <div className="form-group">
-          <label htmlFor="description" className="block text-gray-700 font-medium mb-2">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            placeholder="Enter lecture description"
-            rows="4"
-            required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          ></textarea>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="type" className="block text-gray-700 font-medium mb-2">Lecture Type</label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleInputChange}
-            required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="beginner">Beginner</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
-
-        {/* File upload input */}
-        <div className="form-group">
-          <label htmlFor="file" className="block text-gray-700 font-medium mb-2">Lecture Video (Optional)</label>
-          <input
-            type="file"
-            id="file"
-            onChange={handleFileChange}
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-sm text-gray-500 mt-1">Only upload if you want to change the existing video.</p>
-        </div>
-
-        <div className="flex justify-center">
+      {/* Main Content */}
+      <main className="flex-1 md:ml-64 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-4 sm:p-6">
+          {/* Back Button */}
           <button
-            type="submit"
-            disabled={btnLoading}
-            className="w-full px-4 py-2 bg-blue-200 text-black font-semibold rounded-md border border-blue-300 hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-blue-100"
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 hover:text-gray-800 mb-4 focus:outline-none"
           >
-            {btnLoading ? "Updating..." : "Update Lecture"}
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
           </button>
+
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-center text-gray-800 mb-6">
+            Edit Lecture
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="form-group">
+              <label htmlFor="title" className="block text-gray-700 font-medium mb-2 text-sm sm:text-base lg:text-lg">
+                Lecture Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Enter lecture title"
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#134e4a] text-sm sm:text-base"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="description" className="block text-gray-700 font-medium mb-2 text-sm sm:text-base lg:text-lg">
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Enter lecture description"
+                rows="4"
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#134e4a] text-sm sm:text-base"
+              ></textarea>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="type" className="block text-gray-700 font-medium mb-2 text-sm sm:text-base lg:text-lg">
+                Lecture Type
+              </label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#134e4a] text-sm sm:text-base"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="file" className="block text-gray-700 font-medium mb-2 text-sm sm:text-base lg:text-lg">
+                Lecture Video (Optional)
+              </label>
+              <input
+                type="file"
+                id="file"
+                onChange={handleFileChange}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#134e4a] text-sm sm:text-base"
+              />
+              <p className="text-sm text-gray-500 mt-1">Only upload if you want to change the existing video.</p>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={btnLoading}
+                className="w-full sm:w-auto px-6 py-2 bg-[#134e4a] text-white font-semibold rounded-md hover:bg-[#0f3b36] focus:outline-none focus:ring-2 focus:ring-[#134e4a] disabled:bg-[#0f3b36] disabled:cursor-not-allowed transition-colors duration-200 text-sm sm:text-base"
+              >
+                {btnLoading ? "Updating..." : "Update Lecture"}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </main>
     </div>
   );
 };

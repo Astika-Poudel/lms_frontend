@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { UserData } from "../../context/UserContext";
-import { TutorData } from "../../context/TutorContext"; // Import TutorContext
+import { TutorData } from "../../context/TutorContext";
 
 const AssignedTutors = () => {
   const { user } = UserData();
-  const { fetchTutorCourses, tutorCourses } = TutorData(); // Use TutorContext for tutor-specific data if needed
+  const { fetchAllTutors, assignTutorToCourse, removeTutorFromCourse, tutors, loading: tutorLoading } = TutorData();
   const [courses, setCourses] = useState([]);
-  const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -20,7 +19,6 @@ const AssignedTutors = () => {
         throw new Error("No token found. Please log in.");
       }
 
-      // Fetch all courses (admin-specific)
       const coursesResponse = await axios.get("/api/course/all", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -31,20 +29,8 @@ const AssignedTutors = () => {
         throw new Error("Failed to fetch courses");
       }
 
-      // Fetch all tutors (admin-specific)
-      const tutorsResponse = await axios.get("/api/users/tutors", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log("Tutors API response:", tutorsResponse.data);
-      if (tutorsResponse.data.success) {
-        setTutors(tutorsResponse.data.tutors || []);
-      } else {
-        throw new Error("Failed to fetch tutors");
-      }
-
-      // Optionally fetch tutorCourses from TutorContext (for reference, not used here)
-      // await fetchTutorCourses();
-      // console.log("Tutor courses from context:", tutorCourses);
+      await fetchAllTutors();
+      console.log("Tutors from context:", tutors);
     } catch (err) {
       console.error("Error fetching data:", err.response || err.message);
       setError(err.message || "Failed to load data. Please try again.");
@@ -55,42 +41,20 @@ const AssignedTutors = () => {
 
   const handleTutorUpdate = async (courseId, tutorId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `/api/tutor/course/${courseId}/assign-tutor`,
-        { tutorId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log("Assign tutor response:", response.data);
-
-      if (response.data.success) {
-        fetchData(); // Refresh the courses list
-      } else {
-        throw new Error("Failed to assign tutor");
-      }
+      await assignTutorToCourse(courseId, tutorId);
+      await fetchData();
     } catch (err) {
-      console.error("Tutor update failed:", err.response || err.message);
+      console.error("Tutor update failed:", err);
       setError(err.message || "Failed to assign tutor. Please try again.");
     }
   };
 
   const handleDelete = async (courseId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.put(
-        `/api/tutor/course/${courseId}/remove-tutor`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log("Remove tutor response:", response.data);
-
-      if (response.data.success) {
-        fetchData(); // Refresh the courses list
-      } else {
-        throw new Error("Failed to remove tutor");
-      }
+      await removeTutorFromCourse(courseId);
+      await fetchData();
     } catch (err) {
-      console.error("Delete failed:", err.response || err.message);
+      console.error("Delete failed:", err);
       setError(err.message || "Failed to remove tutor. Please try again.");
     }
   };
@@ -103,7 +67,7 @@ const AssignedTutors = () => {
     }
   }, [user]);
 
-  if (loading) return <div className="text-center">Loading...</div>;
+  if (loading || tutorLoading) return <div className="text-center">Loading...</div>;
   if (error) return <div className="text-center text-red-500">Error: {error}</div>;
 
   return (

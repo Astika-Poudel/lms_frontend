@@ -35,9 +35,15 @@ import TutorQuizzes from "./pages/Tutor/TutorQuizzes";
 import Success from "./pages/courses/Success";
 import Failure from "./pages/courses/Failure";
 import CourseForum from "./pages/courses/CourseForum";
+import StudentProgress from "./pages/Tutor/StudentProgress";
+import PostDetail from "./pages/courses/PostDetail";
+import TutorProfile from "./pages/profile/TutorProfile";
+import StudentProfile from "./pages/profile/StudentProfile";
+
 
 const App = () => {
     const { isAuth, loading, user } = UserData();
+    console.log("App state:", { isAuth, loading, user }); // Debug
 
     const renderHeader = () => {
         if (!isAuth) return <Header />;
@@ -70,7 +76,8 @@ const App = () => {
     const ProtectedRoute = ({ children, role }) => {
         if (loading) return <Loading />;
         if (!isAuth) return <Navigate to="/login" />;
-        if (user?.role?.toLowerCase() !== role) return <Navigate to="/" />;
+        console.log("ProtectedRoute - User:", user, "Role:", user?.role, "Required role:", role); 
+        if (role && user?.role?.toLowerCase() !== role) return <Navigate to="/" />;
         return children;
     };
 
@@ -86,6 +93,38 @@ const App = () => {
                         <Route path="/login" element={isAuth ? <Navigate to="/" /> : <Login />} />
                         <Route path="/register" element={isAuth ? <Navigate to="/" /> : <Register />} />
                         <Route path="/verify" element={isAuth ? <Navigate to="/" /> : <Verify />} />
+                        <Route
+                            path="/tutor/:tutorId"
+                            element={
+                                <ProtectedRoute>
+                                    <TutorProfile />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/student/:studentId"
+                            element={
+                                <ProtectedRoute >
+                                    <StudentProfile />
+                                </ProtectedRoute>
+                            }
+                        />
+                          <Route
+                            path="/course/forum/:courseId"
+                            element={
+                                <ProtectedRoute>
+                                    <CourseForum />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/course/forum/:courseId/:postId"
+                            element={
+                                <ProtectedRoute >
+                                    <PostDetail />
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route path="/dashboard/admin"
                             element={
                                 <ProtectedRoute role="admin">
@@ -190,18 +229,18 @@ const App = () => {
                             }
                         />
                         <Route
-                            path="/tutor/messages"
-                            element={
-                                <ProtectedRoute role="tutor">
-                                    <Profile user={user} />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
                             path="/tutor/courseoverview/:id"
                             element={
                                 <ProtectedRoute role="tutor">
                                     <TutorCourseOverview />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/tutor/course/:id/students"
+                            element={
+                                <ProtectedRoute role="tutor">
+                                    <StudentProgress />
                                 </ProtectedRoute>
                             }
                         />
@@ -218,6 +257,14 @@ const App = () => {
                             element={
                                 <ProtectedRoute role="tutor">
                                     <TutorQuizzes />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/tutor/:tutorId"
+                            element={
+                                <ProtectedRoute>
+                                    <TutorProfile />
                                 </ProtectedRoute>
                             }
                         />
@@ -245,6 +292,7 @@ const App = () => {
                                 </ProtectedRoute>
                             }
                         />
+
                         <Route
                             path="/payment/:id"
                             element={
@@ -253,7 +301,7 @@ const App = () => {
                                 </ProtectedRoute>
                             }
                         />
-                         <Route
+                        <Route
                             path="/payment-success"
                             element={
                                 <ProtectedRoute role="student">
@@ -261,7 +309,7 @@ const App = () => {
                                 </ProtectedRoute>
                             }
                         />
-                         <Route
+                        <Route
                             path="/payment-failure"
                             element={
                                 <ProtectedRoute role="student">
@@ -298,14 +346,6 @@ const App = () => {
                             element={
                                 <ProtectedRoute role="student">
                                     <MyCourses />
-                                </ProtectedRoute>
-                            }
-                        />
-                         <Route
-                            path="/student/course/forum/:courseId"
-                            element={
-                                <ProtectedRoute role="student">
-                                    <CourseForum />
                                 </ProtectedRoute>
                             }
                         />
